@@ -1,0 +1,7 @@
+[
+  { "code": "DOD", "name": "Department of Defense" },
+  { "code": "DOT", "name": "Department of Transportation" },
+  { "code": "HHS", "name": "Department of Health and Human Services" },
+  { "code": "NASA", "name": "National Aeronautics and Space Administration" },
+  { "code": "DHS", "name": "Department of Homeland Security" }
+]
