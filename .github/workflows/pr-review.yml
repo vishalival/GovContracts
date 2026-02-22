@@ -1,3 +1,0 @@
-git add .github/workflows/pr-review.yml
-git commit -m "Add Github Action for automated PR reviews with Devin"
-git push origin main

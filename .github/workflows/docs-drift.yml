@@ -1,0 +1,143 @@
+name: Devin Doc Drift Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: read
+
+concurrency:
+  group: devin-doc-drift-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  doc-drift-review:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get PR changed files
+        id: pr-files
+        run: |
+          FILES=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" | \
+            jq -r '[.[].filename] | @json')
+
+          if [ -z "$FILES" ] || [ "$FILES" = "null" ]; then
+            echo "Error: failed to fetch PR files."
+            exit 1
+          fi
+
+          echo "files=$FILES" >> "$GITHUB_OUTPUT"
+
+          # Files likely relevant to API/docs drift.
+          RELEVANT_FILES=$(echo "$FILES" | jq -c '[.[] | select(
+            test("(^docs/)|(^backend/)|(^frontend/lib/api\\.)|(^frontend/app/api/)|(^openapi\\.)|(^swagger\\.)|(^api/)")
+          )]')
+
+          echo "relevant_files=$RELEVANT_FILES" >> "$GITHUB_OUTPUT"
+
+          RELEVANT_COUNT=$(echo "$RELEVANT_FILES" | jq 'length')
+          echo "relevant_count=$RELEVANT_COUNT" >> "$GITHUB_OUTPUT"
+
+      - name: Skip if no likely API/docs files changed
+        if: ${{ steps.pr-files.outputs.relevant_count == '0' }}
+        run: |
+          echo "No likely API/docs files changed; skipping Devin doc-drift review."
+
+      - name: Create Devin session for doc-drift review
+        if: ${{ steps.pr-files.outputs.relevant_count != '0' }}
+        id: devin-review
+        env:
+          DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
+          ALL_CHANGED_FILES: ${{ steps.pr-files.outputs.files }}
+          RELEVANT_FILES: ${{ steps.pr-files.outputs.relevant_files }}
+          REVIEW_PROMPT: |
+            You are Devin, acting as a documentation drift reviewer.
+
+            Goal:
+            Detect drift between API documentation and the actual API usage/implementation in this pull request.
+
+            Repository:
+            - Repo: ${{ github.repository }}
+            - PR number: ${{ github.event.pull_request.number }}
+            - Changed files (all): ${{ steps.pr-files.outputs.files }}
+            - Changed files (API/docs-relevant): ${{ steps.pr-files.outputs.relevant_files }}
+
+            Primary tasks:
+            1) Inspect the PR diff for API contract changes.
+            2) Compare changed API behavior/usages against docs (especially docs/api.md and related docs files).
+            3) Report doc drift with precise evidence.
+
+            What counts as drift:
+            - Endpoint path/method changed but docs not updated
+            - Request body/query/path/header parameters changed but docs outdated
+            - Response shape/fields/types/examples changed but docs outdated
+            - Auth requirements changed but docs outdated
+            - Status codes/error formats changed but docs outdated
+            - Frontend API usage expects behavior not documented
+
+            Review process:
+            1) Clone the repo and checkout PR #${{ github.event.pull_request.number }}.
+            2) Set up a local pre-push hook that blocks any push from this session.
+            3) Review only files in the PR diff first; then read docs and API sources as needed.
+            4) If no drift is found, post exactly one PR comment:
+               "No documentation drift detected for this PR."
+            5) If drift is found, post concise PR comments with:
+               - what drift exists
+               - where it appears in code/docs
+               - exact doc update suggestion
+            6) Consolidate repeated issues; max 4 total comments.
+
+            Hard constraints:
+            - NEVER commit, push, or open new PRs.
+            - Do not request user confirmation.
+            - Do not report speculative issues without concrete file evidence.
+        run: |
+          if [ -z "$DEVIN_API_KEY" ]; then
+            echo "Error: DEVIN_API_KEY is not set."
+            exit 1
+          fi
+
+          ESCAPED_PROMPT=$(echo "$REVIEW_PROMPT" | jq -Rs .)
+
+          RESPONSE=$(curl -s -X POST \
+            -H "Authorization: Bearer $DEVIN_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"prompt\": $ESCAPED_PROMPT}" \
+            "https://api.devin.ai/v1/sessions")
+
+          ERROR_MSG=$(echo "$RESPONSE" | jq -r '.detail // empty')
+          if [ -n "$ERROR_MSG" ]; then
+            echo "Error creating Devin session: $ERROR_MSG"
+            exit 1
+          fi
+
+          SESSION_ID=$(echo "$RESPONSE" | jq -r '.session_id // empty')
+          SESSION_URL=$(echo "$RESPONSE" | jq -r '.url // empty')
+
+          if [ -z "$SESSION_ID" ] || [ -z "$SESSION_URL" ]; then
+            echo "Error: missing session details in Devin response."
+            echo "$RESPONSE"
+            exit 1
+          fi
+
+          echo "session-id=$SESSION_ID" >> "$GITHUB_OUTPUT"
+          echo "session-url=$SESSION_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Add session link to workflow summary
+        if: ${{ steps.devin-review.outputs.session-url != '' }}
+        run: |
+          {
+            echo "## Devin Doc Drift Session"
+            echo ""
+            echo "- Session ID: \`${{ steps.devin-review.outputs.session-id }}\`"
+            echo "- URL: ${{ steps.devin-review.outputs.session-url }}"
+          } >> "$GITHUB_STEP_SUMMARY"
