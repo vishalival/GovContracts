@@ -3,6 +3,9 @@ name: Devin Doc Drift Check
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+  workflow_dispatch:
+  schedule:
+    - cron: "0 16 * * 1"
 
 permissions:
   contents: write
@@ -10,11 +13,12 @@ permissions:
   issues: write
 
 concurrency:
-  group: devin-doc-drift-${{ github.event.pull_request.number }}
+  group: devin-doc-drift-${{ github.event.pull_request.number || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
-  doc-drift-review:
+  pr-doc-drift-review:
+    if: ${{ github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -57,6 +61,7 @@ jobs:
         id: devin-review
         env:
           DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
+          DEVIN_PLAYBOOK_ID: ${{ secrets.DEVIN_PLAYBOOK_ID }}
           REVIEW_PROMPT: |
             You are Devin acting as an API documentation drift reviewer and fixer for this PR.
 
@@ -73,7 +78,7 @@ jobs:
             Goals:
             1) Detect drift between API behavior/usages and docs.
             2) Fix straightforward reference-doc drift directly in this PR branch when safe.
-            3) Keep review noise low with one concise summary comment.
+            3) Keep review noise low with one consolidated summary comment.
 
             What counts as drift:
             - Endpoint path/method changed but docs not updated
@@ -86,36 +91,45 @@ jobs:
             1) Inspect PR diff first.
             2) Compare API sources and usage to docs (prioritize docs/api.md).
             3) Separate:
-               - Auto-reference docs: API paths/params/response shapes/error codes (safe to auto-fix).
-               - Conceptual docs: architecture/rationale/migration guidance (suggest only; do not invent).
+               - Auto-generated/reference docs (OpenAPI, Swagger, endpoint tables, params, response fields, error/status codes): safe to auto-fix.
+               - Conceptual docs (guides, architecture, tutorials, onboarding): do not rewrite; suggest concise outline only for human review.
             4) If no drift, post exactly:
                "No documentation drift detected for this PR."
             5) If drift exists:
                - Apply minimal edits to docs for clear reference drift (prefer docs/api.md).
                - Keep edits scoped to changed endpoints only.
-               - Post one consolidated PR comment with:
-                 a) drift found
-                 b) files changed
-                 c) what was auto-updated
-                 d) any conceptual docs requiring human follow-up.
+               - Post one consolidated PR comment containing:
+                 a) drift summary table (endpoint, drift type, severity, evidence)
+                 b) files auto-updated
+                 c) conceptual-doc follow-up items (if any)
+                 d) brief reviewer checklist.
 
             Guardrails:
             - You MAY edit files and commit/push to this PR branch for doc fixes.
             - Do NOT perform large refactors or unrelated changes.
             - Do NOT open new PRs.
-            - Keep to at most one summary comment unless blocked.
+            - Keep to one summary comment unless blocked by tooling.
         run: |
           if [ -z "$DEVIN_API_KEY" ]; then
             echo "Error: DEVIN_API_KEY is not set."
             exit 1
           fi
 
-          ESCAPED_PROMPT=$(echo "$REVIEW_PROMPT" | jq -Rs .)
+          if [ -n "$DEVIN_PLAYBOOK_ID" ]; then
+            PAYLOAD=$(jq -n \
+              --arg pb "$DEVIN_PLAYBOOK_ID" \
+              --arg prompt "$REVIEW_PROMPT" \
+              '{playbook_id: $pb, prompt: $prompt, idempotent: true}')
+          else
+            PAYLOAD=$(jq -n \
+              --arg prompt "$REVIEW_PROMPT" \
+              '{prompt: $prompt, idempotent: true}')
+          fi
 
           RESPONSE=$(curl -s -X POST \
             -H "Authorization: Bearer $DEVIN_API_KEY" \
             -H "Content-Type: application/json" \
-            -d "{\"prompt\": $ESCAPED_PROMPT}" \
+            -d "$PAYLOAD" \
             "https://api.devin.ai/v1/sessions")
 
           ERROR_MSG=$(echo "$RESPONSE" | jq -r '.detail // empty')
@@ -140,8 +154,103 @@ jobs:
         if: ${{ steps.devin-review.outputs.session-url != '' }}
         run: |
           {
-            echo "## Devin Doc Drift Session"
+            echo "## Devin PR Doc Drift Session"
             echo ""
             echo "- Session ID: \`${{ steps.devin-review.outputs.session-id }}\`"
             echo "- URL: ${{ steps.devin-review.outputs.session-url }}"
+            echo "- Relevant files in PR: ${{ steps.pr-files.outputs.relevant_count }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  scheduled-doc-drift-scan:
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create Devin session for full-repo drift scan
+        id: devin-scan
+        env:
+          DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
+          DEVIN_PLAYBOOK_ID: ${{ secrets.DEVIN_PLAYBOOK_ID }}
+          REVIEW_PROMPT: |
+            You are Devin performing a scheduled full-repository API-doc drift scan.
+
+            Assignment context:
+            API docs can drift behind implementation; detect drift proactively and keep engineering noise low.
+
+            Repository:
+            - Repo: ${{ github.repository }}
+            - Trigger: ${{ github.event_name }}
+            - Branch: ${{ github.ref_name }}
+
+            Goals:
+            1) Scan API implementation/usages and docs for drift.
+            2) Auto-fix only clear reference-doc drift.
+            3) Avoid unnecessary churn.
+
+            Scope guidance:
+            - Reference docs (safe to update): endpoint/method tables, params, response fields, status/error codes, OpenAPI/Swagger references.
+            - Conceptual docs (human ownership): architecture guidance, narratives, migration strategy. For these, provide concise proposed outline only.
+
+            Output policy:
+            - Create one concise summary comment/report of drift findings and updates.
+            - Group related drift items; avoid spammy comments.
+
+            Guardrails:
+            - You MAY edit docs and push focused fixes.
+            - Do NOT make unrelated code refactors.
+            - Do NOT open new PRs.
+        run: |
+          if [ -z "$DEVIN_API_KEY" ]; then
+            echo "Error: DEVIN_API_KEY is not set."
+            exit 1
+          fi
+
+          if [ -n "$DEVIN_PLAYBOOK_ID" ]; then
+            PAYLOAD=$(jq -n \
+              --arg pb "$DEVIN_PLAYBOOK_ID" \
+              --arg prompt "$REVIEW_PROMPT" \
+              '{playbook_id: $pb, prompt: $prompt, idempotent: true}')
+          else
+            PAYLOAD=$(jq -n \
+              --arg prompt "$REVIEW_PROMPT" \
+              '{prompt: $prompt, idempotent: true}')
+          fi
+
+          RESPONSE=$(curl -s -X POST \
+            -H "Authorization: Bearer $DEVIN_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            "https://api.devin.ai/v1/sessions")
+
+          ERROR_MSG=$(echo "$RESPONSE" | jq -r '.detail // empty')
+          if [ -n "$ERROR_MSG" ]; then
+            echo "Error creating Devin session: $ERROR_MSG"
+            exit 1
+          fi
+
+          SESSION_ID=$(echo "$RESPONSE" | jq -r '.session_id // empty')
+          SESSION_URL=$(echo "$RESPONSE" | jq -r '.url // empty')
+
+          if [ -z "$SESSION_ID" ] || [ -z "$SESSION_URL" ]; then
+            echo "Error: missing session details in Devin response."
+            echo "$RESPONSE"
+            exit 1
+          fi
+
+          echo "session-id=$SESSION_ID" >> "$GITHUB_OUTPUT"
+          echo "session-url=$SESSION_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Add scheduled session link to workflow summary
+        if: ${{ steps.devin-scan.outputs.session-url != '' }}
+        run: |
+          {
+            echo "## Devin Scheduled Doc Drift Session"
+            echo ""
+            echo "- Session ID: \`${{ steps.devin-scan.outputs.session-id }}\`"
+            echo "- URL: ${{ steps.devin-scan.outputs.session-url }}"
           } >> "$GITHUB_STEP_SUMMARY"
