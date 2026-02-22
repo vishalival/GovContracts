@@ -1,6 +1,29 @@
 # GovContracts API (Phase 1)
 
-Base URL: `http://localhost:8000`
+Default Base URL (Next.js): `/api` (relative, used by the frontend automatically).
+FastAPI backend Base URL: `http://localhost:8000` (set `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000` to use the Python backend instead).
+
+## GET /health
+
+Returns API health status.
+
+### Query Parameters
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| None | - | - | No query parameters. |
+
+### Example curl
+
+```bash
+curl -s http://localhost:3000/api/health
+```
+
+### Example JSON response
+
+```json
+{ "status": "ok" }
+```
 
 ## GET /v1/agencies
 
@@ -15,7 +38,7 @@ Returns the list of supported agencies for filter dropdowns.
 ### Example curl
 
 ```bash
-curl -s http://localhost:8000/v1/agencies
+curl -s http://localhost:3000/api/v1/agencies
 ```
 
 ### Example JSON response
@@ -44,8 +67,17 @@ Returns budget summary for one agency and fiscal year.
 ### Example curl
 
 ```bash
-curl -s "http://localhost:8000/v1/budget/summary?agency=DOT&fiscal_year=2026"
+curl -s "http://localhost:3000/api/v1/budget/summary?agency=DOT&fiscal_year=2026"
 ```
+
+### Error Responses
+
+| Status | Condition | Body |
+|---|---|---|
+| 400 | `agency` missing or not 2-10 characters | `{ "detail": "agency is required (2-10 chars)" }` |
+| 404 | No matching budget record | `{ "detail": "Budget summary not found" }` |
+
+> **Note:** The `agency` value is normalised to uppercase before lookup.
 
 ### Example JSON response
 
@@ -85,8 +117,18 @@ Each contract item includes `psc_description` (string) and `naics_description` (
 ### Example curl
 
 ```bash
-curl -s "http://localhost:8000/v1/contracts?agency=DOT&status=Active&fiscal_year=2026&limit=10&offset=0&sort_by=award_date&sort_dir=desc"
+curl -s "http://localhost:3000/api/v1/contracts?agency=DOT&status=Active&fiscal_year=2026&limit=10&offset=0&sort_by=award_date&sort_dir=desc"
 ```
+
+### Error Responses
+
+| Status | Condition | Body |
+|---|---|---|
+| 400 | Invalid `status` value | `{ "detail": "status must be one of All, Active, Closed" }` |
+| 400 | Invalid `sort_by` value | `{ "detail": "sort_by must be one of award_date, obligated_amount" }` |
+| 400 | Invalid `sort_dir` value | `{ "detail": "sort_dir must be one of asc, desc" }` |
+
+> **Note:** `limit` is clamped to the range [1, 100]. `offset` is clamped to a minimum of 0. `agency` is normalised to uppercase; the value `ALL` (any case) is treated as "no filter".
 
 ### Example JSON response
 
@@ -134,8 +176,14 @@ Returns complete detail for one contract. The response item includes `psc_descri
 ### Example curl
 
 ```bash
-curl -s http://localhost:8000/v1/contracts/DOT-2026-00041
+curl -s http://localhost:3000/api/v1/contracts/DOT-2026-00041
 ```
+
+### Error Responses
+
+| Status | Condition | Body |
+|---|---|---|
+| 404 | Contract ID not found | `{ "detail": "Contract not found" }` |
 
 ### Example JSON response
 
@@ -179,7 +227,7 @@ Returns vendor search results.
 ### Example curl
 
 ```bash
-curl -s "http://localhost:8000/v1/vendors?query=blue&limit=5"
+curl -s "http://localhost:3000/api/v1/vendors?query=blue&limit=5"
 ```
 
 ### Example JSON response
@@ -213,8 +261,14 @@ Returns detailed vendor profile, totals, and top agencies/categories.
 ### Example curl
 
 ```bash
-curl -s http://localhost:8000/v1/vendors/V003
+curl -s http://localhost:3000/api/v1/vendors/V003
 ```
+
+### Error Responses
+
+| Status | Condition | Body |
+|---|---|---|
+| 404 | Vendor ID not found | `{ "detail": "Vendor not found" }` |
 
 ### Example JSON response
 
@@ -238,3 +292,31 @@ curl -s http://localhost:8000/v1/vendors/V003
   ]
 }
 ```
+
+## GET /v1/docs/api
+
+Returns the API reference documentation as a Markdown string. Used by the frontend to render the docs page.
+
+### Query Parameters
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| None | - | - | No query parameters. |
+
+### Example curl
+
+```bash
+curl -s http://localhost:3000/api/v1/docs/api
+```
+
+### Example JSON response
+
+```json
+{ "content": "# GovContracts API (Phase 1)\\n..." }
+```
+
+### Error Responses
+
+| Status | Condition | Body |
+|---|---|---|
+| 404 | Docs file not found | `{ "detail": "API docs not found" }` |
