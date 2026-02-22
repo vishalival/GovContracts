@@ -1,0 +1,122 @@
+[
+  {
+    "agency": "DOD",
+    "fiscal_year": 2025,
+    "total_budget": 9200000000,
+    "obligated_amount": 6180000000,
+    "breakdown_by_category": [
+      { "category": "Operations", "amount": 2100000000 },
+      { "category": "IT Systems", "amount": 1280000000 },
+      { "category": "Research", "amount": 1750000000 },
+      { "category": "Infrastructure", "amount": 1050000000 }
+    ]
+  },
+  {
+    "agency": "DOD",
+    "fiscal_year": 2026,
+    "total_budget": 9750000000,
+    "obligated_amount": 7025000000,
+    "breakdown_by_category": [
+      { "category": "Operations", "amount": 2400000000 },
+      { "category": "IT Systems", "amount": 1650000000 },
+      { "category": "Research", "amount": 1950000000 },
+      { "category": "Infrastructure", "amount": 1025000000 }
+    ]
+  },
+  {
+    "agency": "DOT",
+    "fiscal_year": 2025,
+    "total_budget": 1760000000,
+    "obligated_amount": 1210000000,
+    "breakdown_by_category": [
+      { "category": "Infrastructure", "amount": 640000000 },
+      { "category": "IT Systems", "amount": 210000000 },
+      { "category": "Operations", "amount": 220000000 },
+      { "category": "Research", "amount": 140000000 }
+    ]
+  },
+  {
+    "agency": "DOT",
+    "fiscal_year": 2026,
+    "total_budget": 1875000000,
+    "obligated_amount": 1424000000,
+    "breakdown_by_category": [
+      { "category": "Infrastructure", "amount": 760000000 },
+      { "category": "IT Systems", "amount": 238000000 },
+      { "category": "Operations", "amount": 276000000 },
+      { "category": "Research", "amount": 150000000 }
+    ]
+  },
+  {
+    "agency": "HHS",
+    "fiscal_year": 2025,
+    "total_budget": 2480000000,
+    "obligated_amount": 1832000000,
+    "breakdown_by_category": [
+      { "category": "Operations", "amount": 620000000 },
+      { "category": "IT Systems", "amount": 480000000 },
+      { "category": "Research", "amount": 502000000 },
+      { "category": "Infrastructure", "amount": 230000000 }
+    ]
+  },
+  {
+    "agency": "HHS",
+    "fiscal_year": 2026,
+    "total_budget": 2650000000,
+    "obligated_amount": 1965000000,
+    "breakdown_by_category": [
+      { "category": "Operations", "amount": 710000000 },
+      { "category": "IT Systems", "amount": 515000000 },
+      { "category": "Research", "amount": 515000000 },
+      { "category": "Infrastructure", "amount": 225000000 }
+    ]
+  },
+  {
+    "agency": "NASA",
+    "fiscal_year": 2025,
+    "total_budget": 3350000000,
+    "obligated_amount": 2235000000,
+    "breakdown_by_category": [
+      { "category": "Research", "amount": 980000000 },
+      { "category": "IT Systems", "amount": 360000000 },
+      { "category": "Operations", "amount": 540000000 },
+      { "category": "Infrastructure", "amount": 355000000 }
+    ]
+  },
+  {
+    "agency": "NASA",
+    "fiscal_year": 2026,
+    "total_budget": 3520000000,
+    "obligated_amount": 2480000000,
+    "breakdown_by_category": [
+      { "category": "Research", "amount": 1080000000 },
+      { "category": "IT Systems", "amount": 420000000 },
+      { "category": "Operations", "amount": 612000000 },
+      { "category": "Infrastructure", "amount": 368000000 }
+    ]
+  },
+  {
+    "agency": "DHS",
+    "fiscal_year": 2025,
+    "total_budget": 2110000000,
+    "obligated_amount": 1565000000,
+    "breakdown_by_category": [
+      { "category": "Operations", "amount": 605000000 },
+      { "category": "IT Systems", "amount": 350000000 },
+      { "category": "Infrastructure", "amount": 330000000 },
+      { "category": "Research", "amount": 280000000 }
+    ]
+  },
+  {
+    "agency": "DHS",
+    "fiscal_year": 2026,
+    "total_budget": 2250000000,
+    "obligated_amount": 1680000000,
+    "breakdown_by_category": [
+      { "category": "Operations", "amount": 680000000 },
+      { "category": "IT Systems", "amount": 390000000 },
+      { "category": "Infrastructure", "amount": 340000000 },
+      { "category": "Research", "amount": 270000000 }
+    ]
+  }
+]
