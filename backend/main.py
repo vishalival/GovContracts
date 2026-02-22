@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -19,14 +20,21 @@ VENDOR_MAP: dict[str, dict[str, Any]] = {}
 
 app = FastAPI(title="GovContracts API")
 
+ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
+    "https://data-stack-dusky.vercel.app",
+]
+
+extra_origins = os.getenv("CORS_ALLOW_ORIGINS", "").strip()
+if extra_origins:
+    ALLOWED_ORIGINS.extend([origin.strip() for origin in extra_origins.split(",") if origin.strip()])
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:3001",
-        "http://127.0.0.1:3001",
-    ],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -77,10 +85,10 @@ def _filter_contracts(
     *,
     agency: str | None,
     status: str,
-    fiscal_year: int,
+    year: int,
 ) -> list[dict[str, Any]]:
     normalized_agency = _normalize_agency(agency)
-    items = [contract for contract in CONTRACTS if contract["fiscal_year"] == fiscal_year]
+    items = [contract for contract in CONTRACTS if contract["year"] == year]
 
     if normalized_agency:
         items = [contract for contract in items if contract["agency"] == normalized_agency]
@@ -89,15 +97,15 @@ def _filter_contracts(
     return items
 
 
-def _compute_budget_summary(agency: str, fiscal_year: int) -> dict[str, Any]:
+def _compute_budget_summary(agency: str, year: int) -> dict[str, Any]:
     normalized_agency = agency.upper()
     for budget in BUDGETS:
-        if budget["agency"] == normalized_agency and budget["fiscal_year"] == fiscal_year:
+        if budget["agency"] == normalized_agency and budget["year"] == year:
             total_budget = int(budget["total_budget"])
             obligated_amount = int(budget["obligated_amount"])
             return {
                 "agency": normalized_agency,
-                "fiscal_year": fiscal_year,
+                "year": year,
                 "total_budget": total_budget,
                 "obligated_amount": obligated_amount,
                 "remaining_budget": total_budget - obligated_amount,
@@ -173,7 +181,7 @@ def get_budget_summary(
 def get_contracts(
     agency: str | None = Query(None),
     status: str = Query("All"),
-    fiscal_year: int = Query(2026, ge=2000, le=2100),
+    year: int = Query(2026, ge=2000, le=2100),
     limit: int = Query(25, ge=1, le=100),
     offset: int = Query(0, ge=0),
 ) -> dict[str, Any]:
@@ -181,7 +189,7 @@ def get_contracts(
     if status not in allowed_statuses:
         raise HTTPException(status_code=400, detail="status must be one of All, Active, Closed")
 
-    filtered = _filter_contracts(agency=agency, status=status, fiscal_year=fiscal_year)
+    filtered = _filter_contracts(agency=agency, status=status, year=year)
     total = len(filtered)
     paginated = filtered[offset : offset + limit]
     return {
