@@ -68,6 +68,8 @@ curl -s "http://localhost:8000/v1/budget/summary?agency=DOT&fiscal_year=2026"
 
 Returns paginated contracts with optional agency/status/year filters.
 
+Each contract item includes `psc_description` (string) and `naics_description` (string) fields resolved at runtime from the CSV lookup tables in `code_tables/`. If a code is not found, the value falls back to `"Unknown PSC"` or `"Unknown NAICS"` respectively.
+
 ### Query Parameters
 
 | Name | Type | Required | Description |
@@ -121,7 +123,7 @@ curl -s "http://localhost:8000/v1/contracts?agency=DOT&status=Active&fiscal_year
 
 ## GET /v1/contracts/{contract_id}
 
-Returns complete detail for one contract.
+Returns complete detail for one contract. The response item includes `psc_description` and `naics_description` fields (see [GET /v1/contracts](#get-v1contracts) for details).
 
 ### Path Parameters
 
