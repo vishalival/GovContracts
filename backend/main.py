@@ -85,10 +85,10 @@ def _filter_contracts(
     *,
     agency: str | None,
     status: str,
-    year: int,
+    fiscal_year: int,
 ) -> list[dict[str, Any]]:
     normalized_agency = _normalize_agency(agency)
-    items = [contract for contract in CONTRACTS if contract["year"] == year]
+    items = [contract for contract in CONTRACTS if contract["fiscal_year"] == fiscal_year]
 
     if normalized_agency:
         items = [contract for contract in items if contract["agency"] == normalized_agency]
@@ -97,15 +97,15 @@ def _filter_contracts(
     return items
 
 
-def _compute_budget_summary(agency: str, year: int) -> dict[str, Any]:
+def _compute_budget_summary(agency: str, fiscal_year: int) -> dict[str, Any]:
     normalized_agency = agency.upper()
     for budget in BUDGETS:
-        if budget["agency"] == normalized_agency and budget["year"] == year:
+        if budget["agency"] == normalized_agency and budget["fiscal_year"] == fiscal_year:
             total_budget = int(budget["total_budget"])
             obligated_amount = int(budget["obligated_amount"])
             return {
                 "agency": normalized_agency,
-                "year": year,
+                "fiscal_year": fiscal_year,
                 "total_budget": total_budget,
                 "obligated_amount": obligated_amount,
                 "remaining_budget": total_budget - obligated_amount,
@@ -172,16 +172,16 @@ def get_agencies() -> dict[str, list[dict[str, Any]]]:
 @app.get("/v1/budget/summary")
 def get_budget_summary(
     agency: str = Query(..., min_length=2, max_length=10),
-    year: int = Query(2026, ge=2000, le=2100),
+    fiscal_year: int = Query(2026, ge=2000, le=2100),
 ) -> dict[str, Any]:
-    return _compute_budget_summary(agency=agency, year=year)
+    return _compute_budget_summary(agency=agency, fiscal_year=fiscal_year)
 
 
 @app.get("/v1/contracts")
 def get_contracts(
     agency: str | None = Query(None),
     status: str = Query("All"),
-    year: int = Query(2026, ge=2000, le=2100),
+    fiscal_year: int = Query(2026, ge=2000, le=2100),
     limit: int = Query(25, ge=1, le=100),
     offset: int = Query(0, ge=0),
 ) -> dict[str, Any]:
@@ -189,7 +189,7 @@ def get_contracts(
     if status not in allowed_statuses:
         raise HTTPException(status_code=400, detail="status must be one of All, Active, Closed")
 
-    filtered = _filter_contracts(agency=agency, status=status, year=year)
+    filtered = _filter_contracts(agency=agency, status=status, fiscal_year=fiscal_year)
     total = len(filtered)
     paginated = filtered[offset : offset + limit]
     return {
