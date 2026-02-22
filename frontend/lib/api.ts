@@ -34,12 +34,16 @@ export async function fetchContracts(params: {
   fiscalYear?: number;
   limit?: number;
   offset?: number;
+  sortBy?: "award_date" | "obligated_amount";
+  sortDir?: "asc" | "desc";
 }): Promise<ContractsResponse> {
   const query = new URLSearchParams({
     fiscal_year: String(params.fiscalYear ?? 2026),
     status: params.status ?? "All",
     limit: String(params.limit ?? 25),
-    offset: String(params.offset ?? 0)
+    offset: String(params.offset ?? 0),
+    sort_by: params.sortBy ?? "award_date",
+    sort_dir: params.sortDir ?? "desc"
   });
   if (params.agency && params.agency !== "All") {
     query.set("agency", params.agency);

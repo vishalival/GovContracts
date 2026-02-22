@@ -184,12 +184,30 @@ def get_contracts(
     fiscal_year: int = Query(2026, ge=2000, le=2100),
     limit: int = Query(25, ge=1, le=100),
     offset: int = Query(0, ge=0),
+    sort_by: str = Query("award_date"),
+    sort_dir: str = Query("desc"),
 ) -> dict[str, Any]:
     allowed_statuses = {"All", "Active", "Closed"}
     if status not in allowed_statuses:
         raise HTTPException(status_code=400, detail="status must be one of All, Active, Closed")
 
+    allowed_sort_by = {"award_date", "obligated_amount"}
+    if sort_by not in allowed_sort_by:
+        raise HTTPException(status_code=400, detail="sort_by must be one of award_date, obligated_amount")
+
+    allowed_sort_dir = {"asc", "desc"}
+    if sort_dir not in allowed_sort_dir:
+        raise HTTPException(status_code=400, detail="sort_dir must be one of asc, desc")
+
     filtered = _filter_contracts(agency=agency, status=status, fiscal_year=fiscal_year)
+
+    if sort_by == "obligated_amount":
+        key_fn = lambda contract: int(contract["obligated_amount"])
+    else:
+        # ISO dates sort correctly as strings.
+        key_fn = lambda contract: contract["award_date"]
+
+    filtered = sorted(filtered, key=key_fn, reverse=(sort_dir == "desc"))
     total = len(filtered)
     paginated = filtered[offset : offset + limit]
     return {
