@@ -1,0 +1,119 @@
+[
+  {
+    "vendor_id": "V001",
+    "name": "Orion Federal Tech",
+    "uei": "UEI8K2M4R7T19",
+    "duns": "129304875",
+    "total_awards": 0,
+    "active_contracts": 0,
+    "small_business": false
+  },
+  {
+    "vendor_id": "V002",
+    "name": "Atlas Infrastructure Group",
+    "uei": "UEI5Q9L1N2B33",
+    "duns": "983410275",
+    "total_awards": 0,
+    "active_contracts": 0,
+    "small_business": false
+  },
+  {
+    "vendor_id": "V003",
+    "name": "BlueRiver Transit Systems",
+    "uei": "UEI3N8D0TXA94",
+    "duns": "834920154",
+    "total_awards": 0,
+    "active_contracts": 0,
+    "small_business": false
+  },
+  {
+    "vendor_id": "V004",
+    "name": "Meridian Health Analytics",
+    "uei": "UEI2A7C5J8M40",
+    "duns": "765221489",
+    "total_awards": 0,
+    "active_contracts": 0,
+    "small_business": true
+  },
+  {
+    "vendor_id": "V005",
+    "name": "Nova Aerospace Dynamics",
+    "uei": "UEI7P4S6K1V28",
+    "duns": "448019276",
+    "total_awards": 0,
+    "active_contracts": 0,
+    "small_business": false
+  },
+  {
+    "vendor_id": "V006",
+    "name": "Sentinel Security Logistics",
+    "uei": "UEI1W3R8H6Z72",
+    "duns": "297513840",
+    "total_awards": 0,
+    "active_contracts": 0,
+    "small_business": true
+  },
+  {
+    "vendor_id": "V007",
+    "name": "Harborview Operations LLC",
+    "uei": "UEI6F0D9P2L67",
+    "duns": "530471992",
+    "total_awards": 0,
+    "active_contracts": 0,
+    "small_business": true
+  },
+  {
+    "vendor_id": "V008",
+    "name": "Quantum Civic Cloud",
+    "uei": "UEI9U5E2G7C31",
+    "duns": "620948153",
+    "total_awards": 0,
+    "active_contracts": 0,
+    "small_business": false
+  },
+  {
+    "vendor_id": "V009",
+    "name": "Redstone Research Partners",
+    "uei": "UEI4Y1H3B5K86",
+    "duns": "712305489",
+    "total_awards": 0,
+    "active_contracts": 0,
+    "small_business": true
+  },
+  {
+    "vendor_id": "V010",
+    "name": "ClearPath Facility Services",
+    "uei": "UEI0T6J4M9Q45",
+    "duns": "159704283",
+    "total_awards": 0,
+    "active_contracts": 0,
+    "small_business": true
+  },
+  {
+    "vendor_id": "V011",
+    "name": "Summit BioSupply",
+    "uei": "UEI2R8N6V0A51",
+    "duns": "274683950",
+    "total_awards": 0,
+    "active_contracts": 0,
+    "small_business": true
+  },
+  {
+    "vendor_id": "V012",
+    "name": "EagleBridge Engineering",
+    "uei": "UEI5L7X2D8S60",
+    "duns": "905217364",
+    "total_awards": 0,
+    "active_contracts": 0,
+    "small_business": false
+  },
+  {
+    "vendor_id": "V013",
+    "name": "Pioneer Data Works",
+    "uei": "UEI3C9P1F4R22",
+    "duns": "367290145",
+    "total_awards": 0,
+    "active_contracts": 0,
+    "small_business": true
+  }
+]
