@@ -6,10 +6,14 @@ type FiltersBarProps = {
   fiscalYear: number;
   status: "All" | "Active" | "Closed";
   search: string;
+  sortBy: "award_date" | "obligated_amount";
+  sortDir: "asc" | "desc";
   onAgencyChange: (value: string) => void;
   onFiscalYearChange: (value: number) => void;
   onStatusChange: (value: "All" | "Active" | "Closed") => void;
   onSearchChange: (value: string) => void;
+  onSortByChange: (value: "award_date" | "obligated_amount") => void;
+  onSortDirChange: (value: "asc" | "desc") => void;
 };
 
 export default function FiltersBar(props: FiltersBarProps) {
@@ -19,14 +23,18 @@ export default function FiltersBar(props: FiltersBarProps) {
     fiscalYear,
     status,
     search,
+    sortBy,
+    sortDir,
     onAgencyChange,
     onFiscalYearChange,
     onStatusChange,
-    onSearchChange
+    onSearchChange,
+    onSortByChange,
+    onSortDirChange
   } = props;
 
   return (
-    <div className="grid grid-cols-1 gap-3 rounded-lg border border-gray-200 bg-white p-4 md:grid-cols-4">
+    <div className="grid grid-cols-1 gap-3 rounded-lg border border-gray-200 bg-white p-4 md:grid-cols-6">
       <label className="text-sm text-gray-700">
         <span className="mb-1 block">Agency</span>
         <select
@@ -65,6 +73,30 @@ export default function FiltersBar(props: FiltersBarProps) {
           <option value="All">All</option>
           <option value="Active">Active</option>
           <option value="Closed">Closed</option>
+        </select>
+      </label>
+
+      <label className="text-sm text-gray-700">
+        <span className="mb-1 block">Sort by</span>
+        <select
+          className="w-full rounded-md border border-gray-300 px-3 py-2"
+          value={sortBy}
+          onChange={(event) => onSortByChange(event.target.value as "award_date" | "obligated_amount")}
+        >
+          <option value="award_date">Award Date</option>
+          <option value="obligated_amount">Obligated Amount</option>
+        </select>
+      </label>
+
+      <label className="text-sm text-gray-700">
+        <span className="mb-1 block">Direction</span>
+        <select
+          className="w-full rounded-md border border-gray-300 px-3 py-2"
+          value={sortDir}
+          onChange={(event) => onSortDirChange(event.target.value as "asc" | "desc")}
+        >
+          <option value="desc">Desc</option>
+          <option value="asc">Asc</option>
         </select>
       </label>
 

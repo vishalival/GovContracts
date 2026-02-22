@@ -32,6 +32,8 @@ export default function DashboardPage() {
   const [fiscalYear, setFiscalYear] = useState<number>(2026);
   const [status, setStatus] = useState<"All" | "Active" | "Closed">("All");
   const [search, setSearch] = useState<string>("");
+  const [sortBy, setSortBy] = useState<"award_date" | "obligated_amount">("award_date");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [offset, setOffset] = useState<number>(0);
 
   const [contractsPage, setContractsPage] = useState<ContractsResponse | null>(null);
@@ -61,7 +63,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     setOffset(0);
-  }, [agency, fiscalYear, status, search]);
+  }, [agency, fiscalYear, status, search, sortBy, sortDir]);
 
   useEffect(() => {
     async function loadContracts() {
@@ -69,8 +71,8 @@ export default function DashboardPage() {
       setError(null);
       try {
         const [pageData, kpiData] = await Promise.all([
-          fetchContracts({ agency, status, fiscalYear, limit: PAGE_LIMIT, offset }),
-          fetchContracts({ agency, status, fiscalYear, limit: 100, offset: 0 })
+          fetchContracts({ agency, status, fiscalYear, limit: PAGE_LIMIT, offset, sortBy, sortDir }),
+          fetchContracts({ agency, status, fiscalYear, limit: 100, offset: 0, sortBy, sortDir })
         ]);
         setContractsPage(pageData);
         setKpiContracts(kpiData.items);
@@ -81,7 +83,7 @@ export default function DashboardPage() {
       }
     }
     void loadContracts();
-  }, [agency, fiscalYear, status, offset]);
+  }, [agency, fiscalYear, status, offset, sortBy, sortDir]);
 
   useEffect(() => {
     async function loadBudget() {
@@ -215,10 +217,14 @@ export default function DashboardPage() {
             fiscalYear={fiscalYear}
             status={status}
             search={search}
+            sortBy={sortBy}
+            sortDir={sortDir}
             onAgencyChange={setAgency}
             onFiscalYearChange={setFiscalYear}
             onStatusChange={setStatus}
             onSearchChange={setSearch}
+            onSortByChange={setSortBy}
+            onSortDirChange={setSortDir}
           />
 
           <ContractsTable contracts={filteredPageItems} loading={loadingPage} onSelect={openContract} />

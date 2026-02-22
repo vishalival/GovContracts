@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -19,14 +20,21 @@ VENDOR_MAP: dict[str, dict[str, Any]] = {}
 
 app = FastAPI(title="GovContracts API")
 
+ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
+    "https://data-stack-dusky.vercel.app",
+]
+
+extra_origins = os.getenv("CORS_ALLOW_ORIGINS", "").strip()
+if extra_origins:
+    ALLOWED_ORIGINS.extend([origin.strip() for origin in extra_origins.split(",") if origin.strip()])
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:3001",
-        "http://127.0.0.1:3001",
-    ],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -164,9 +172,9 @@ def get_agencies() -> dict[str, list[dict[str, Any]]]:
 @app.get("/v1/budget/summary")
 def get_budget_summary(
     agency: str = Query(..., min_length=2, max_length=10),
-    year: int = Query(2026, ge=2000, le=2100),
+    fiscal_year: int = Query(2026, ge=2000, le=2100),
 ) -> dict[str, Any]:
-    return _compute_budget_summary(agency=agency, year=year)
+    return _compute_budget_summary(agency=agency, fiscal_year=fiscal_year)
 
 
 @app.get("/v1/contracts")
@@ -176,12 +184,30 @@ def get_contracts(
     fiscal_year: int = Query(2026, ge=2000, le=2100),
     limit: int = Query(25, ge=1, le=100),
     offset: int = Query(0, ge=0),
+    sort_by: str = Query("award_date"),
+    sort_dir: str = Query("desc"),
 ) -> dict[str, Any]:
     allowed_statuses = {"All", "Active", "Closed"}
     if status not in allowed_statuses:
         raise HTTPException(status_code=400, detail="status must be one of All, Active, Closed")
 
+    allowed_sort_by = {"award_date", "obligated_amount"}
+    if sort_by not in allowed_sort_by:
+        raise HTTPException(status_code=400, detail="sort_by must be one of award_date, obligated_amount")
+
+    allowed_sort_dir = {"asc", "desc"}
+    if sort_dir not in allowed_sort_dir:
+        raise HTTPException(status_code=400, detail="sort_dir must be one of asc, desc")
+
     filtered = _filter_contracts(agency=agency, status=status, fiscal_year=fiscal_year)
+
+    if sort_by == "obligated_amount":
+        key_fn = lambda contract: int(contract["obligated_amount"])
+    else:
+        # ISO dates sort correctly as strings.
+        key_fn = lambda contract: contract["award_date"]
+
+    filtered = sorted(filtered, key=key_fn, reverse=(sort_dir == "desc"))
     total = len(filtered)
     paginated = filtered[offset : offset + limit]
     return {
