@@ -5,9 +5,9 @@ on:
     types: [opened, synchronize, reopened]
 
 permissions:
-  contents: read
-  pull-requests: read
-  issues: read
+  contents: write
+  pull-requests: write
+  issues: write
 
 concurrency:
   group: devin-doc-drift-${{ github.event.pull_request.number }}
@@ -52,18 +52,17 @@ jobs:
         run: |
           echo "No likely API/docs files changed; skipping Devin doc-drift review."
 
-      - name: Create Devin session for doc-drift review
+      - name: Create Devin session for doc-drift review/remediation
         if: ${{ steps.pr-files.outputs.relevant_count != '0' }}
         id: devin-review
         env:
           DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
-          ALL_CHANGED_FILES: ${{ steps.pr-files.outputs.files }}
-          RELEVANT_FILES: ${{ steps.pr-files.outputs.relevant_files }}
           REVIEW_PROMPT: |
-            You are Devin, acting as a documentation drift reviewer.
+            You are Devin acting as an API documentation drift reviewer and fixer for this PR.
 
-            Goal:
-            Detect drift between API documentation and the actual API usage/implementation in this pull request.
+            Assignment context:
+            "Our API docs are out of date because endpoint changes are not reflected in docs.
+            Detect drift and keep practical API references current without overwhelming engineers."
 
             Repository:
             - Repo: ${{ github.repository }}
@@ -71,35 +70,40 @@ jobs:
             - Changed files (all): ${{ steps.pr-files.outputs.files }}
             - Changed files (API/docs-relevant): ${{ steps.pr-files.outputs.relevant_files }}
 
-            Primary tasks:
-            1) Inspect the PR diff for API contract changes.
-            2) Compare changed API behavior/usages against docs (especially docs/api.md and related docs files).
-            3) Report doc drift with precise evidence.
+            Goals:
+            1) Detect drift between API behavior/usages and docs.
+            2) Fix straightforward reference-doc drift directly in this PR branch when safe.
+            3) Keep review noise low with one concise summary comment.
 
             What counts as drift:
             - Endpoint path/method changed but docs not updated
-            - Request body/query/path/header parameters changed but docs outdated
+            - Query/path/body/header params changed but docs outdated
             - Response shape/fields/types/examples changed but docs outdated
-            - Auth requirements changed but docs outdated
-            - Status codes/error formats changed but docs outdated
+            - Validation/status/error behavior changed but docs outdated
             - Frontend API usage expects behavior not documented
 
-            Review process:
-            1) Clone the repo and checkout PR #${{ github.event.pull_request.number }}.
-            2) Set up a local pre-push hook that blocks any push from this session.
-            3) Review only files in the PR diff first; then read docs and API sources as needed.
-            4) If no drift is found, post exactly one PR comment:
+            Process:
+            1) Inspect PR diff first.
+            2) Compare API sources and usage to docs (prioritize docs/api.md).
+            3) Separate:
+               - Auto-reference docs: API paths/params/response shapes/error codes (safe to auto-fix).
+               - Conceptual docs: architecture/rationale/migration guidance (suggest only; do not invent).
+            4) If no drift, post exactly:
                "No documentation drift detected for this PR."
-            5) If drift is found, post concise PR comments with:
-               - what drift exists
-               - where it appears in code/docs
-               - exact doc update suggestion
-            6) Consolidate repeated issues; max 4 total comments.
+            5) If drift exists:
+               - Apply minimal edits to docs for clear reference drift (prefer docs/api.md).
+               - Keep edits scoped to changed endpoints only.
+               - Post one consolidated PR comment with:
+                 a) drift found
+                 b) files changed
+                 c) what was auto-updated
+                 d) any conceptual docs requiring human follow-up.
 
-            Hard constraints:
-            - NEVER commit, push, or open new PRs.
-            - Do not request user confirmation.
-            - Do not report speculative issues without concrete file evidence.
+            Guardrails:
+            - You MAY edit files and commit/push to this PR branch for doc fixes.
+            - Do NOT perform large refactors or unrelated changes.
+            - Do NOT open new PRs.
+            - Keep to at most one summary comment unless blocked.
         run: |
           if [ -z "$DEVIN_API_KEY" ]; then
             echo "Error: DEVIN_API_KEY is not set."
