@@ -6,6 +6,8 @@ from typing import Any
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
+from code_tables import enrich_contract, load_code_tables
+
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
@@ -157,6 +159,7 @@ def _compute_vendor_detail(vendor_id: str) -> dict[str, Any]:
 @app.on_event("startup")
 def startup_load_data() -> None:
     _load_data()
+    load_code_tables()
 
 
 @app.get("/health")
@@ -214,7 +217,7 @@ def get_contracts(
         "total": total,
         "limit": limit,
         "offset": offset,
-        "items": paginated,
+        "items": [enrich_contract(c) for c in paginated],
     }
 
 
@@ -222,7 +225,7 @@ def get_contracts(
 def get_contract(contract_id: str) -> dict[str, Any]:
     for contract in CONTRACTS:
         if contract["contract_id"] == contract_id:
-            return {"item": contract}
+            return {"item": enrich_contract(contract)}
     raise HTTPException(status_code=404, detail="Contract not found")
 
 
