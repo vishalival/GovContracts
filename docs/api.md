@@ -77,11 +77,13 @@ Returns paginated contracts with optional agency/status/year filters.
 | fiscal_year | integer | No | Fiscal year. Default: `2026`. |
 | limit | integer | No | Page size. Default: `25`, max: `100`. |
 | offset | integer | No | Pagination offset. Default: `0`. |
+| sort_by | string | No | Field to sort results by. One of `award_date`, `obligated_amount`. Default: `award_date`. |
+| sort_dir | string | No | Sort direction. One of `asc`, `desc`. Default: `desc`. |
 
 ### Example curl
 
 ```bash
-curl -s "http://localhost:8000/v1/contracts?agency=DOT&status=Active&fiscal_year=2026&limit=10&offset=0"
+curl -s "http://localhost:8000/v1/contracts?agency=DOT&status=Active&fiscal_year=2026&limit=10&offset=0&sort_by=award_date&sort_dir=desc"
 ```
 
 ### Example JSON response
