@@ -9,6 +9,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from adjudication import adjudicate_contract
 from code_tables import enrich_contract, load_code_tables
 
 
@@ -178,31 +179,14 @@ def _find_contract(contract_id: str) -> dict[str, Any]:
 
 
 def _legacy_cobol_award_decision(contract: dict[str, Any], vendor: dict[str, Any]) -> dict[str, Any]:
-    reasons: list[str] = []
-    obligated_amount = int(contract["obligated_amount"])
-    active_contracts = int(vendor.get("active_contracts", 0))
-    total_awards = int(vendor.get("total_awards", 0))
+    """Delegate to the modernized adjudication module.
 
-    if contract["status"] != "Active":
-        reasons.append("Contract is not active and requires no further award action.")
-        return {"decision": "REJECT", "reasons": reasons}
-
-    if obligated_amount < 1_000_000:
-        reasons.append("Obligated amount is below the modernization threshold.")
-        return {"decision": "REJECT", "reasons": reasons}
-
-    if obligated_amount >= 120_000_000:
-        reasons.append("High dollar amount requires additional federal review controls.")
-    if active_contracts >= 5:
-        reasons.append("Vendor has high active workload concentration.")
-    if total_awards >= 500_000_000:
-        reasons.append("Vendor cumulative awards exceed policy watch threshold.")
-
-    if reasons:
-        return {"decision": "REVIEW", "reasons": reasons}
-
-    reasons.append("Contract and vendor profile satisfy automated legacy award checks.")
-    return {"decision": "APPROVE", "reasons": reasons}
+    This wrapper preserves the existing function signature so that all
+    call-sites continue to work unchanged.  The actual rule evaluation
+    now lives in ``adjudication.py``, a faithful line-by-line translation
+    of the COBOL program ``CONTRACT_AWARD_ADJUDICATION.cbl``.
+    """
+    return adjudicate_contract(contract, vendor)
 
 
 def _dispatch_repository_event(*, event_type: str, client_payload: dict[str, Any]) -> dict[str, str]:
