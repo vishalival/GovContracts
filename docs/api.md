@@ -325,11 +325,11 @@ Triggers GitHub `repository_dispatch` so a workflow can launch a Devin COBOL mod
 
 | Name | Type | Required | Description |
 |---|---|---|---|
-| contract_id | string | Yes | Contract ID such as `DOT-2026-00041`. |
-| cobol_path | string | No | Path to a `.cbl` file. Defaults to `backend/legacy_cobol/CONTRACT_AWARD_ADJUDICATION.cbl`. |
-| target_stack | string | No | Defaults to `python-fastapi`. |
-| base_branch | string | No | Defaults to `main`. |
-| event_type | string | No | Defaults to `devin-cobol-modernize`. |
+| contract_id | string | Yes | Contract ID (5–40 characters), e.g. `DOT-2026-00041`. |
+| cobol_path | string | No | Path to a `.cbl` file (5–200 characters). Defaults to `backend/legacy_cobol/CONTRACT_AWARD_ADJUDICATION.cbl`. |
+| target_stack | string | No | Target technology stack (2–40 characters). Defaults to `python-fastapi`. |
+| base_branch | string | No | Git branch name (1–100 characters). Defaults to `main`. |
+| event_type | string | No | GitHub repository dispatch event type (3–100 characters). Defaults to `devin-cobol-modernize`. |
 
 ### Error Responses
 
