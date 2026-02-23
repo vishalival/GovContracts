@@ -1,9 +1,18 @@
-import type { Agency, BudgetSummary, Contract, ContractsResponse, Vendor, VendorDetail } from "./types";
+import type {
+  Agency,
+  BudgetSummary,
+  CobolAdjudication,
+  ModernizationTriggerResponse,
+  Contract,
+  ContractsResponse,
+  Vendor,
+  VendorDetail
+} from "./types";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "/api";
 
-async function request<T>(path: string): Promise<T> {
-  const response = await fetch(`${BASE_URL}${path}`, { cache: "no-store" });
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(`${BASE_URL}${path}`, { cache: "no-store", ...init });
   if (!response.ok) {
     const message = await response.text();
     throw new Error(`API ${response.status}: ${message || "Request failed"}`);
@@ -72,4 +81,27 @@ export async function fetchVendorDetail(vendorId: string): Promise<VendorDetail>
 export async function fetchApiDocsMarkdown(): Promise<string> {
   const data = await request<{ content: string }>("/v1/docs/api");
   return data.content;
+}
+
+export async function fetchCobolAdjudication(contractId: string): Promise<CobolAdjudication> {
+  const query = new URLSearchParams({ contract_id: contractId });
+  return request<CobolAdjudication>(`/v1/legacy/cobol/adjudication?${query.toString()}`);
+}
+
+export async function triggerDevinModernization(params: {
+  contractId: string;
+  cobolPath?: string;
+  targetStack?: string;
+  baseBranch?: string;
+}): Promise<ModernizationTriggerResponse> {
+  return request<ModernizationTriggerResponse>("/v1/modernization/trigger", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contract_id: params.contractId,
+      cobol_path: params.cobolPath ?? "backend/legacy_cobol/CONTRACT_AWARD_ADJUDICATION.cbl",
+      target_stack: params.targetStack ?? "python-fastapi",
+      base_branch: params.baseBranch ?? "main"
+    })
+  });
 }

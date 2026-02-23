@@ -2,9 +2,12 @@ import json
 import os
 from pathlib import Path
 from typing import Any
+import urllib.error
+import urllib.request
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
 
 from code_tables import enrich_contract, load_code_tables
 
@@ -12,6 +15,17 @@ from code_tables import enrich_contract, load_code_tables
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 API_DOCS_PATH = BASE_DIR.parent / "docs" / "api.md"
+LEGACY_COBOL_DIR = BASE_DIR / "legacy_cobol"
+COBOL_PROGRAM_PATH = LEGACY_COBOL_DIR / "CONTRACT_AWARD_ADJUDICATION.cbl"
+COBOL_PROGRAM_REPO_PATH = "backend/legacy_cobol/CONTRACT_AWARD_ADJUDICATION.cbl"
+
+
+class ModernizationTriggerRequest(BaseModel):
+    contract_id: str = Field(..., min_length=5, max_length=40)
+    cobol_path: str = Field(default=COBOL_PROGRAM_REPO_PATH, min_length=5, max_length=200)
+    target_stack: str = Field(default="python-fastapi", min_length=2, max_length=40)
+    base_branch: str = Field(default="main", min_length=1, max_length=100)
+    event_type: str = Field(default="devin-cobol-modernize", min_length=3, max_length=100)
 
 AGENCIES: list[dict[str, Any]] = []
 BUDGETS: list[dict[str, Any]] = []
@@ -156,6 +170,80 @@ def _compute_vendor_detail(vendor_id: str) -> dict[str, Any]:
     }
 
 
+def _find_contract(contract_id: str) -> dict[str, Any]:
+    for contract in CONTRACTS:
+        if contract["contract_id"] == contract_id:
+            return contract
+    raise HTTPException(status_code=404, detail="Contract not found")
+
+
+def _legacy_cobol_award_decision(contract: dict[str, Any], vendor: dict[str, Any]) -> dict[str, Any]:
+    reasons: list[str] = []
+    obligated_amount = int(contract["obligated_amount"])
+    active_contracts = int(vendor.get("active_contracts", 0))
+    total_awards = int(vendor.get("total_awards", 0))
+
+    if contract["status"] != "Active":
+        reasons.append("Contract is not active and requires no further award action.")
+        return {"decision": "REJECT", "reasons": reasons}
+
+    if obligated_amount < 1_000_000:
+        reasons.append("Obligated amount is below the modernization threshold.")
+        return {"decision": "REJECT", "reasons": reasons}
+
+    if obligated_amount >= 120_000_000:
+        reasons.append("High dollar amount requires additional federal review controls.")
+    if active_contracts >= 5:
+        reasons.append("Vendor has high active workload concentration.")
+    if total_awards >= 500_000_000:
+        reasons.append("Vendor cumulative awards exceed policy watch threshold.")
+
+    if reasons:
+        return {"decision": "REVIEW", "reasons": reasons}
+
+    reasons.append("Contract and vendor profile satisfy automated legacy award checks.")
+    return {"decision": "APPROVE", "reasons": reasons}
+
+
+def _dispatch_repository_event(*, event_type: str, client_payload: dict[str, Any]) -> dict[str, str]:
+    github_token = os.getenv("GITHUB_TOKEN", "").strip()
+    github_repository = os.getenv("GITHUB_REPOSITORY", "").strip()
+    github_api_url = os.getenv("GITHUB_API_URL", "https://api.github.com").rstrip("/")
+
+    if not github_token:
+        raise HTTPException(status_code=500, detail="GITHUB_TOKEN is not configured")
+    if not github_repository:
+        raise HTTPException(status_code=500, detail="GITHUB_REPOSITORY is not configured")
+
+    dispatch_url = f"{github_api_url}/repos/{github_repository}/dispatches"
+    payload = json.dumps({"event_type": event_type, "client_payload": client_payload}).encode("utf-8")
+    request = urllib.request.Request(
+        dispatch_url,
+        data=payload,
+        method="POST",
+        headers={
+            "Authorization": f"Bearer {github_token}",
+            "Accept": "application/vnd.github+json",
+            "Content-Type": "application/json",
+            "X-GitHub-Api-Version": "2022-11-28",
+        },
+    )
+
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            status_code = response.getcode()
+            if status_code not in (200, 201, 202, 204):
+                raise HTTPException(status_code=502, detail=f"GitHub dispatch failed with status {status_code}")
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="ignore").strip()
+        detail = body or str(exc.reason)
+        raise HTTPException(status_code=502, detail=f"GitHub dispatch error: {detail}") from exc
+    except urllib.error.URLError as exc:
+        raise HTTPException(status_code=502, detail=f"GitHub dispatch network error: {exc.reason}") from exc
+
+    return {"repository": github_repository, "dispatch_url": dispatch_url}
+
+
 @app.on_event("startup")
 def startup_load_data() -> None:
     _load_data()
@@ -248,6 +336,79 @@ def get_vendors(
 @app.get("/v1/vendors/{vendor_id}")
 def get_vendor_detail(vendor_id: str) -> dict[str, Any]:
     return _compute_vendor_detail(vendor_id)
+
+
+@app.get("/v1/legacy/cobol/source")
+def get_legacy_cobol_source() -> dict[str, str]:
+    if not COBOL_PROGRAM_PATH.exists():
+        raise HTTPException(status_code=404, detail="Legacy COBOL source not found")
+    return {
+        "program_name": "CONTRACT_AWARD_ADJUDICATION",
+        "path": str(COBOL_PROGRAM_PATH.relative_to(BASE_DIR)),
+        "content": COBOL_PROGRAM_PATH.read_text(encoding="utf-8"),
+    }
+
+
+@app.get("/v1/legacy/cobol/adjudication")
+def get_legacy_cobol_adjudication(
+    contract_id: str = Query(..., min_length=5, max_length=40),
+) -> dict[str, Any]:
+    contract = _find_contract(contract_id)
+    vendor = VENDOR_MAP.get(contract["vendor_id"])
+    if not vendor:
+        raise HTTPException(status_code=404, detail="Vendor not found for contract")
+
+    decision = _legacy_cobol_award_decision(contract=contract, vendor=vendor)
+    return {
+        "program_name": "CONTRACT_AWARD_ADJUDICATION",
+        "contract_id": contract["contract_id"],
+        "vendor_id": vendor["vendor_id"],
+        "decision": decision["decision"],
+        "reasons": decision["reasons"],
+        "inputs": {
+            "contract_status": contract["status"],
+            "obligated_amount": int(contract["obligated_amount"]),
+            "vendor_active_contracts": int(vendor.get("active_contracts", 0)),
+            "vendor_total_awards": int(vendor.get("total_awards", 0)),
+        },
+    }
+
+
+@app.post("/v1/modernization/trigger")
+def trigger_cobol_modernization(request: ModernizationTriggerRequest) -> dict[str, Any]:
+    if not request.cobol_path.lower().endswith(".cbl"):
+        raise HTTPException(status_code=400, detail="cobol_path must point to a .cbl file")
+
+    contract = _find_contract(request.contract_id)
+    vendor = VENDOR_MAP.get(contract["vendor_id"])
+    if not vendor:
+        raise HTTPException(status_code=404, detail="Vendor not found for contract")
+
+    adjudication = _legacy_cobol_award_decision(contract=contract, vendor=vendor)
+    dispatch_metadata = _dispatch_repository_event(
+        event_type=request.event_type,
+        client_payload={
+            "contract_id": request.contract_id,
+            "cobol_path": request.cobol_path,
+            "target_stack": request.target_stack,
+            "base_branch": request.base_branch,
+            "decision_preview": adjudication["decision"],
+            "vendor_id": vendor["vendor_id"],
+        },
+    )
+
+    return {
+        "status": "queued",
+        "message": "Devin COBOL modernization workflow dispatch requested.",
+        "event_type": request.event_type,
+        "contract_id": request.contract_id,
+        "vendor_id": vendor["vendor_id"],
+        "cobol_path": request.cobol_path,
+        "target_stack": request.target_stack,
+        "base_branch": request.base_branch,
+        "decision_preview": adjudication["decision"],
+        "repository": dispatch_metadata["repository"],
+    }
 
 
 @app.get("/v1/docs/api")
