@@ -114,7 +114,8 @@ export default function DashboardPage() {
       }
     }
     void loadContracts();
-  }, [agency, fiscalYear, status, offset, sortBy, sortDir, cobolContractId]);
+  }, [agency, fiscalYear, status, offset, sortBy, sortDir]);
+
 
   useEffect(() => {
     async function loadBudget() {
