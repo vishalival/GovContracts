@@ -1,11 +1,14 @@
 name: Devin COBOL Modernization
 
 on:
+  pull_request:
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
     inputs:
       contract_id:
         description: "Contract ID to modernize (example: DOT-2026-00041)"
-        required: true
+        required: false
+        default: "N/A"
         type: string
       cobol_path:
         description: "Path to COBOL source file"
@@ -32,27 +35,58 @@ permissions:
   issues: write
 
 concurrency:
-  group: devin-cobol-modernization-${{ github.ref_name }}
-  cancel-in-progress: false
+  group: devin-cobol-modernization-${{ github.event.pull_request.number || github.ref_name }}
+  cancel-in-progress: true
 
 jobs:
   launch-devin-modernization:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Resolve trigger payload
-        id: payload
+      - name: Resolve trigger context
+        id: context
         env:
+          EVENT_NAME: ${{ github.event_name }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
           CONTRACT_ID: ${{ github.event.inputs.contract_id || github.event.client_payload.contract_id || '' }}
           COBOL_PATH: ${{ github.event.inputs.cobol_path || github.event.client_payload.cobol_path || 'backend/legacy_cobol/CONTRACT_AWARD_ADJUDICATION.cbl' }}
           TARGET_STACK: ${{ github.event.inputs.target_stack || github.event.client_payload.target_stack || 'python-fastapi' }}
           BASE_BRANCH: ${{ github.event.inputs.base_branch || github.event.client_payload.base_branch || 'main' }}
           DECISION_PREVIEW: ${{ github.event.client_payload.decision_preview || '' }}
           VENDOR_ID: ${{ github.event.client_payload.vendor_id || '' }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ -z "$CONTRACT_ID" ]; then
-            echo "Error: contract_id is required."
-            exit 1
+          LEGACY_FILES="[]"
+          LEGACY_COUNT="0"
+          SHOULD_RUN="true"
+
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            FILES=$(curl -s -H "Authorization: token $GH_TOKEN" \
+              "https://api.github.com/repos/$REPOSITORY/pulls/$PR_NUMBER/files" | \
+              jq -r '[.[].filename] | @json')
+
+            if [ -z "$FILES" ] || [ "$FILES" = "null" ]; then
+              echo "Error: failed to fetch PR files."
+              exit 1
+            fi
+
+            LEGACY_FILES=$(echo "$FILES" | jq -c '[.[] | select(
+              test("(^backend/legacy_cobol/)|(.+\\.(cbl|cob|cpy)$)"; "i")
+            )]')
+            LEGACY_COUNT=$(echo "$LEGACY_FILES" | jq 'length')
+
+            if [ "$LEGACY_COUNT" = "0" ]; then
+              SHOULD_RUN="false"
+            fi
+
+            BASE_BRANCH="${{ github.event.pull_request.base.ref }}"
+            if [ -z "$CONTRACT_ID" ]; then
+              CONTRACT_ID="N/A"
+            fi
+            if [ -z "$COBOL_PATH" ] || [ "$COBOL_PATH" = "backend/legacy_cobol/CONTRACT_AWARD_ADJUDICATION.cbl" ]; then
+              COBOL_PATH=$(echo "$LEGACY_FILES" | jq -r '.[0] // "backend/legacy_cobol/CONTRACT_AWARD_ADJUDICATION.cbl"')
+            fi
           fi
 
           echo "contract_id=$CONTRACT_ID" >> "$GITHUB_OUTPUT"
@@ -61,31 +95,45 @@ jobs:
           echo "base_branch=$BASE_BRANCH" >> "$GITHUB_OUTPUT"
           echo "decision_preview=$DECISION_PREVIEW" >> "$GITHUB_OUTPUT"
           echo "vendor_id=$VENDOR_ID" >> "$GITHUB_OUTPUT"
+          echo "legacy_files=$LEGACY_FILES" >> "$GITHUB_OUTPUT"
+          echo "legacy_count=$LEGACY_COUNT" >> "$GITHUB_OUTPUT"
+          echo "should_run=$SHOULD_RUN" >> "$GITHUB_OUTPUT"
+
+      - name: Skip when PR has no legacy COBOL changes
+        if: ${{ github.event_name == 'pull_request' && steps.context.outputs.should_run == 'false' }}
+        run: |
+          echo "No changed COBOL/legacy files detected in this PR; skipping Devin modernization session."
 
       - name: Create Devin modernization session
+        if: ${{ github.event_name != 'pull_request' || steps.context.outputs.should_run == 'true' }}
         id: devin-modernize
         env:
           DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
           DEVIN_PLAYBOOK_ID: ${{ secrets.DEVIN_PLAYBOOK_ID }}
           MODERNIZATION_PROMPT: |
             You are Devin modernizing legacy COBOL adjudication logic with strict behavior parity.
+            Default modernization target is python-fastapi unless explicitly overridden in workflow input/payload.
+            Start implementation immediately; no clarification step is needed for target stack.
 
             Repository context:
             - Repo: ${{ github.repository }}
             - Trigger: ${{ github.event_name }}
-            - Base branch: ${{ steps.payload.outputs.base_branch }}
-            - Contract ID: ${{ steps.payload.outputs.contract_id }}
-            - Vendor ID: ${{ steps.payload.outputs.vendor_id }}
-            - COBOL source path: ${{ steps.payload.outputs.cobol_path }}
-            - Target stack: ${{ steps.payload.outputs.target_stack }}
-            - Legacy decision preview: ${{ steps.payload.outputs.decision_preview }}
+            - Base branch: ${{ steps.context.outputs.base_branch }}
+            - Contract ID: ${{ steps.context.outputs.contract_id }}
+            - Vendor ID: ${{ steps.context.outputs.vendor_id }}
+            - COBOL source path: ${{ steps.context.outputs.cobol_path }}
+            - Target stack: ${{ steps.context.outputs.target_stack }}
+            - Legacy decision preview: ${{ steps.context.outputs.decision_preview }}
+            - PR number: ${{ github.event.pull_request.number || 'N/A' }}
+            - Changed legacy files: ${{ steps.context.outputs.legacy_files }}
 
             Goals:
             1) Analyze the COBOL source and identify the adjudication rules.
-            2) Generate equivalent modernized implementation in the target stack.
+            2) Generate equivalent modernized implementation in python-fastapi (or provided target stack override).
             3) Preserve behavioral parity for APPROVE | REVIEW | REJECT outputs.
-            4) Add/update tests using representative contract fixtures to prove parity.
-            5) Document mapping from COBOL paragraphs/rules to modern functions.
+            4) Add or update unit tests that verify parity for normal, boundary, and edge cases.
+            5) Run the unit tests and include pass/fail status in your PR summary/comment.
+            6) Document mapping from COBOL paragraphs/rules to modern functions.
 
             Guardrails:
             - You MAY edit files and push focused changes.
@@ -142,7 +190,8 @@ jobs:
             echo ""
             echo "- Session ID: \`${{ steps.devin-modernize.outputs.session-id }}\`"
             echo "- URL: ${{ steps.devin-modernize.outputs.session-url }}"
-            echo "- Contract ID: ${{ steps.payload.outputs.contract_id }}"
-            echo "- COBOL path: ${{ steps.payload.outputs.cobol_path }}"
-            echo "- Target stack: ${{ steps.payload.outputs.target_stack }}"
+            echo "- Contract ID: ${{ steps.context.outputs.contract_id }}"
+            echo "- COBOL path: ${{ steps.context.outputs.cobol_path }}"
+            echo "- Target stack: ${{ steps.context.outputs.target_stack }}"
+            echo "- Legacy files in PR: ${{ steps.context.outputs.legacy_count }}"
           } >> "$GITHUB_STEP_SUMMARY"
