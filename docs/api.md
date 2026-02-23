@@ -2,6 +2,8 @@
 
 Base URL: `http://localhost:8000`
 
+> _Last reviewed: 2026-02-23_
+
 ## GET /v1/agencies
 
 Returns the list of supported agencies for filter dropdowns.
