@@ -47,6 +47,7 @@ Returns budget summary for one agency and fiscal year.
 
 | Status | Detail |
 |---|---|
+| 400 | agency is required (2-10 chars) |
 | 404 | Budget summary not found |
 | 422 | Validation error |
 
@@ -408,7 +409,7 @@ curl -s -X POST http://localhost:8000/v1/modernization/trigger \
 
 ## GET /v1/docs/api
 
-Returns the raw Markdown content of this API reference document.
+Returns the raw Markdown content of this API reference file. Used by the frontend API-docs viewer.
 
 ### Query Parameters
 
