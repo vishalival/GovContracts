@@ -2,6 +2,30 @@
 
 Base URL: `http://localhost:8000`
 
+## GET /health
+
+Returns a simple health-check response indicating the API is running.
+
+### Query Parameters
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| None | - | - | No query parameters. |
+
+### Example curl
+
+```bash
+curl -s http://localhost:8000/health
+```
+
+### Example JSON response
+
+```json
+{
+  "status": "ok"
+}
+```
+
 ## GET /v1/agencies
 
 Returns the list of supported agencies for filter dropdowns.
@@ -374,5 +398,35 @@ curl -s -X POST http://localhost:8000/v1/modernization/trigger \
   "base_branch": "main",
   "decision_preview": "APPROVE",
   "repository": "your-org/your-repo"
+}
+```
+
+## GET /v1/docs/api
+
+Returns the raw Markdown content of the API reference documentation.
+
+### Query Parameters
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| None | - | - | No query parameters. |
+
+### Error Responses
+
+| Status | Detail |
+|---|---|
+| 404 | API docs not found |
+
+### Example curl
+
+```bash
+curl -s http://localhost:8000/v1/docs/api
+```
+
+### Example JSON response
+
+```json
+{
+  "content": "# GovContracts API (Phase 1)\n\nBase URL: `http://localhost:8000`\n..."
 }
 ```
