@@ -40,8 +40,15 @@ Returns budget summary for one agency and fiscal year.
 
 | Name | Type | Required | Description |
 |---|---|---|---|
-| fiscal_year | integer | No | Fiscal year. Default: `2026`. |
-| agency | string | Yes | Agency code, e.g. `DOT`. |
+| agency | string | Yes | Agency code (2–10 characters), e.g. `DOT`. |
+| fiscal_year | integer | No | Fiscal year (2000–2100). Default: `2026`. |
+
+### Error Responses
+
+| Status | Detail |
+|---|---|
+| 404 | Budget summary not found |
+| 422 | Validation error |
 
 ### Example curl
 
@@ -83,6 +90,14 @@ Each contract item includes `psc_description` (string) and `naics_description` (
 | offset | integer | No | Pagination offset. Default: `0`. |
 | sort_by | string | No | Field to sort results by. One of `award_date`, `obligated_amount`. Default: `award_date`. |
 | sort_dir | string | No | Sort direction. One of `asc`, `desc`. Default: `desc`. |
+
+### Error Responses
+
+| Status | Detail |
+|---|---|
+| 400 | status must be one of All, Active, Closed |
+| 400 | sort_by must be one of award_date, obligated_amount |
+| 400 | sort_dir must be one of asc, desc |
 
 ### Example curl
 
@@ -133,6 +148,12 @@ Returns complete detail for one contract. The response item includes `psc_descri
 |---|---|---|---|
 | contract_id | string | Yes | Contract ID such as `DOT-2026-00041`. |
 
+### Error Responses
+
+| Status | Detail |
+|---|---|
+| 404 | Contract not found |
+
 ### Example curl
 
 ```bash
@@ -175,7 +196,7 @@ Returns vendor search results.
 
 | Name | Type | Required | Description |
 |---|---|---|---|
-| query | string | No | Case-insensitive match on vendor name or UEI. |
+| query | string | No | Case-insensitive match on vendor name or UEI (max 100 characters). |
 | limit | integer | No | Max number of vendors. Default: `20`, max: `100`. |
 
 ### Example curl
@@ -211,6 +232,12 @@ Returns detailed vendor profile, totals, and top agencies/categories.
 | Name | Type | Required | Description |
 |---|---|---|---|
 | vendor_id | string | Yes | Vendor ID such as `V003`. |
+
+### Error Responses
+
+| Status | Detail |
+|---|---|
+| 404 | Vendor not found |
 
 ### Example curl
 
@@ -376,5 +403,35 @@ curl -s -X POST http://localhost:8000/v1/modernization/trigger \
   "base_branch": "main",
   "decision_preview": "APPROVE",
   "repository": "your-org/your-repo"
+}
+```
+
+## GET /v1/docs/api
+
+Returns the raw Markdown content of this API reference document.
+
+### Query Parameters
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| None | - | - | No query parameters. |
+
+### Error Responses
+
+| Status | Detail |
+|---|---|
+| 404 | API docs not found |
+
+### Example curl
+
+```bash
+curl -s http://localhost:8000/v1/docs/api
+```
+
+### Example JSON response
+
+```json
+{
+  "content": "# GovContracts API (Phase 1)\n\nBase URL: ...\n"
 }
 ```
