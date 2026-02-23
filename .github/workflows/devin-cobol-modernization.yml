@@ -112,6 +112,8 @@ jobs:
           DEVIN_PLAYBOOK_ID: ${{ secrets.DEVIN_PLAYBOOK_ID }}
           MODERNIZATION_PROMPT: |
             You are Devin modernizing legacy COBOL adjudication logic with strict behavior parity.
+            Default modernization target is python-fastapi unless explicitly overridden in workflow input/payload.
+            Start implementation immediately; no clarification step is needed for target stack.
 
             Repository context:
             - Repo: ${{ github.repository }}
@@ -127,10 +129,11 @@ jobs:
 
             Goals:
             1) Analyze the COBOL source and identify the adjudication rules.
-            2) Generate equivalent modernized implementation in the target stack.
+            2) Generate equivalent modernized implementation in python-fastapi (or provided target stack override).
             3) Preserve behavioral parity for APPROVE | REVIEW | REJECT outputs.
-            4) Add/update tests using representative contract fixtures to prove parity.
-            5) Document mapping from COBOL paragraphs/rules to modern functions.
+            4) Add or update unit tests that verify parity for normal, boundary, and edge cases.
+            5) Run the unit tests and include pass/fail status in your PR summary/comment.
+            6) Document mapping from COBOL paragraphs/rules to modern functions.
 
             Guardrails:
             - You MAY edit files and push focused changes.
