@@ -232,3 +232,115 @@ curl -s http://localhost:8000/v1/vendors/V003
   ]
 }
 ```
+
+## GET /v1/legacy/cobol/source
+
+Returns the legacy COBOL source file used for contract award adjudication.
+
+### Query Parameters
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| None | - | - | No query parameters. |
+
+### Example curl
+
+```bash
+curl -s http://localhost:8000/v1/legacy/cobol/source
+```
+
+### Example JSON response
+
+```json
+{
+  "program_name": "CONTRACT_AWARD_ADJUDICATION",
+  "path": "legacy_cobol/CONTRACT_AWARD_ADJUDICATION.cbl",
+  "content": "IDENTIFICATION DIVISION.\nPROGRAM-ID. CONTRACT-AWARD-ADJUDICATION.\n..."
+}
+```
+
+## GET /v1/legacy/cobol/adjudication
+
+Evaluates one contract and vendor profile using legacy-style adjudication logic and returns `APPROVE`, `REVIEW`, or `REJECT`.
+
+### Query Parameters
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| contract_id | string | Yes | Contract ID such as `DOT-2026-00041`. |
+
+### Example curl
+
+```bash
+curl -s "http://localhost:8000/v1/legacy/cobol/adjudication?contract_id=DOT-2026-00041"
+```
+
+### Example JSON response
+
+```json
+{
+  "program_name": "CONTRACT_AWARD_ADJUDICATION",
+  "contract_id": "DOT-2026-00041",
+  "vendor_id": "V003",
+  "decision": "APPROVE",
+  "reasons": [
+    "Contract and vendor profile satisfy automated legacy award checks."
+  ],
+  "inputs": {
+    "contract_status": "Active",
+    "obligated_amount": 42000000,
+    "vendor_active_contracts": 3,
+    "vendor_total_awards": 199000000
+  }
+}
+```
+
+## POST /v1/modernization/trigger
+
+Triggers GitHub `repository_dispatch` so a workflow can launch a Devin COBOL modernization session.
+
+### Environment Requirements (backend)
+
+| Name | Required | Description |
+|---|---|---|
+| GITHUB_TOKEN | Yes | GitHub token with permission to dispatch repository events. |
+| GITHUB_REPOSITORY | Yes | Repository slug in `owner/repo` format. |
+| GITHUB_API_URL | No | Defaults to `https://api.github.com`. |
+
+### JSON Body
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| contract_id | string | Yes | Contract ID such as `DOT-2026-00041`. |
+| cobol_path | string | No | Defaults to `backend/legacy_cobol/CONTRACT_AWARD_ADJUDICATION.cbl`. |
+| target_stack | string | No | Defaults to `python-fastapi`. |
+| base_branch | string | No | Defaults to `main`. |
+| event_type | string | No | Defaults to `devin-cobol-modernize`. |
+
+### Example curl
+
+```bash
+curl -s -X POST http://localhost:8000/v1/modernization/trigger \
+  -H "Content-Type: application/json" \
+  -d '{
+    "contract_id": "DOT-2026-00041",
+    "target_stack": "python-fastapi"
+  }'
+```
+
+### Example JSON response
+
+```json
+{
+  "status": "queued",
+  "message": "Devin COBOL modernization workflow dispatch requested.",
+  "event_type": "devin-cobol-modernize",
+  "contract_id": "DOT-2026-00041",
+  "vendor_id": "V003",
+  "cobol_path": "backend/legacy_cobol/CONTRACT_AWARD_ADJUDICATION.cbl",
+  "target_stack": "python-fastapi",
+  "base_branch": "main",
+  "decision_preview": "APPROVE",
+  "repository": "your-org/your-repo"
+}
+```

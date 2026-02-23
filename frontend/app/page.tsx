@@ -10,11 +10,21 @@ import TopNav from "../components/TopNav";
 import {
   fetchAgencies,
   fetchBudgetSummary,
+  fetchCobolAdjudication,
   fetchContractDetail,
   fetchContracts,
-  fetchVendorDetail
+  fetchVendorDetail,
+  triggerDevinModernization
 } from "../lib/api";
-import type { Agency, BudgetSummary, Contract, ContractsResponse, VendorDetail } from "../lib/types";
+import type {
+  Agency,
+  BudgetSummary,
+  CobolAdjudication,
+  Contract,
+  ContractsResponse,
+  ModernizationTriggerResponse,
+  VendorDetail
+} from "../lib/types";
 
 function money(value: number): string {
   return new Intl.NumberFormat("en-US", {
@@ -25,6 +35,16 @@ function money(value: number): string {
 }
 
 const PAGE_LIMIT = 10;
+
+function decisionBadgeClass(decision: CobolAdjudication["decision"]): string {
+  if (decision === "APPROVE") {
+    return "bg-green-100 text-green-800";
+  }
+  if (decision === "REJECT") {
+    return "bg-red-100 text-red-800";
+  }
+  return "bg-amber-100 text-amber-900";
+}
 
 export default function DashboardPage() {
   const [agencies, setAgencies] = useState<Agency[]>([]);
@@ -48,6 +68,14 @@ export default function DashboardPage() {
   const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
   const [selectedVendorDetail, setSelectedVendorDetail] = useState<VendorDetail | null>(null);
   const [loadingVendor, setLoadingVendor] = useState<boolean>(false);
+  const [cobolContractId, setCobolContractId] = useState<string>("");
+  const [cobolResult, setCobolResult] = useState<CobolAdjudication | null>(null);
+  const [loadingCobol, setLoadingCobol] = useState<boolean>(false);
+  const [cobolError, setCobolError] = useState<string | null>(null);
+  const [targetStack, setTargetStack] = useState<"python-fastapi" | "java-spring" | "go-service">("python-fastapi");
+  const [modernizationResult, setModernizationResult] = useState<ModernizationTriggerResponse | null>(null);
+  const [loadingModernization, setLoadingModernization] = useState<boolean>(false);
+  const [modernizationError, setModernizationError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadAgencies() {
@@ -76,6 +104,9 @@ export default function DashboardPage() {
         ]);
         setContractsPage(pageData);
         setKpiContracts(kpiData.items);
+        if (!cobolContractId && pageData.items.length > 0) {
+          setCobolContractId(pageData.items[0].contract_id);
+        }
       } catch {
         setError("Failed to load contracts.");
       } finally {
@@ -83,7 +114,7 @@ export default function DashboardPage() {
       }
     }
     void loadContracts();
-  }, [agency, fiscalYear, status, offset, sortBy, sortDir]);
+  }, [agency, fiscalYear, status, offset, sortBy, sortDir, cobolContractId]);
 
   useEffect(() => {
     async function loadBudget() {
@@ -155,6 +186,7 @@ export default function DashboardPage() {
   }, [filteredKpiItems]);
 
   async function openContract(contract: Contract) {
+    setCobolContractId(contract.contract_id);
     setSelectedContract(contract);
     setSelectedVendorDetail(null);
     setDrawerOpen(true);
@@ -169,6 +201,51 @@ export default function DashboardPage() {
       setSelectedVendorDetail(null);
     } finally {
       setLoadingVendor(false);
+    }
+  }
+
+  async function runCobolAdjudication() {
+    const trimmedContractId = cobolContractId.trim();
+    if (!trimmedContractId) {
+      setCobolError("Enter a contract ID to evaluate legacy COBOL adjudication.");
+      return;
+    }
+
+    setLoadingCobol(true);
+    setCobolError(null);
+    try {
+      const result = await fetchCobolAdjudication(trimmedContractId);
+      setCobolResult(result);
+    } catch {
+      setCobolResult(null);
+      setCobolError("Could not run COBOL adjudication for this contract ID.");
+    } finally {
+      setLoadingCobol(false);
+    }
+  }
+
+  async function runDevinModernizationTrigger() {
+    const trimmedContractId = cobolContractId.trim();
+    if (!trimmedContractId) {
+      setModernizationError("Enter a contract ID before triggering Devin modernization.");
+      return;
+    }
+
+    setLoadingModernization(true);
+    setModernizationError(null);
+    try {
+      const result = await triggerDevinModernization({
+        contractId: trimmedContractId,
+        targetStack
+      });
+      setModernizationResult(result);
+    } catch {
+      setModernizationResult(null);
+      setModernizationError(
+        "Could not trigger modernization. Check backend env vars GITHUB_TOKEN and GITHUB_REPOSITORY."
+      );
+    } finally {
+      setLoadingModernization(false);
     }
   }
 
@@ -209,6 +286,99 @@ export default function DashboardPage() {
                 </div>
               </div>
             )}
+          </section>
+
+          <section className="rounded-lg border border-gray-200 bg-white p-4 text-sm">
+            <div className="mb-1 font-semibold text-gray-900">Legacy COBOL Adjudication</div>
+            <div className="mb-3 text-gray-600">
+              Evaluate a contract through the legacy award rules engine and return APPROVE, REVIEW, or REJECT.
+            </div>
+            <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+              <input
+                value={cobolContractId}
+                onChange={(event) => setCobolContractId(event.target.value)}
+                placeholder="e.g. DOT-2026-00041"
+                className="w-full rounded border border-gray-300 px-3 py-2 font-mono text-sm sm:max-w-xs"
+              />
+              <button
+                className="rounded bg-gray-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+                onClick={() => void runCobolAdjudication()}
+                disabled={loadingCobol}
+              >
+                {loadingCobol ? "Evaluating..." : "Run COBOL"}
+              </button>
+              <button
+                className="rounded border border-gray-300 bg-white px-3 py-2 text-sm disabled:opacity-50"
+                onClick={() => setCobolContractId(selectedContract?.contract_id ?? cobolContractId)}
+                disabled={!selectedContract}
+              >
+                Use selected contract
+              </button>
+            </div>
+
+            {cobolError ? <div className="mb-3 rounded bg-red-100 p-2 text-red-800">{cobolError}</div> : null}
+
+            {cobolResult ? (
+              <div className="space-y-2 rounded border border-gray-200 bg-gray-50 p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-medium text-gray-900">{cobolResult.program_name}</span>
+                  <span className="text-gray-500">Contract {cobolResult.contract_id}</span>
+                  <span className={`rounded px-2 py-0.5 text-xs font-semibold ${decisionBadgeClass(cobolResult.decision)}`}>
+                    {cobolResult.decision}
+                  </span>
+                </div>
+                <div className="text-gray-700">Vendor: {cobolResult.vendor_id}</div>
+                <div className="text-gray-700">Reasons: {cobolResult.reasons.join(" ")}</div>
+                <div className="text-gray-600">
+                  Inputs: status={cobolResult.inputs.contract_status}, obligated={money(cobolResult.inputs.obligated_amount)},
+                  active contracts={cobolResult.inputs.vendor_active_contracts}, total awards=
+                  {money(cobolResult.inputs.vendor_total_awards)}
+                </div>
+              </div>
+            ) : null}
+
+            <div className="mt-4 border-t border-gray-200 pt-4">
+              <div className="mb-1 font-semibold text-gray-900">Trigger Devin Modernization</div>
+              <div className="mb-3 text-gray-600">
+                Queue a GitHub Actions automation that creates a Devin COBOL modernization session.
+              </div>
+              <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+                <select
+                  value={targetStack}
+                  onChange={(event) =>
+                    setTargetStack(event.target.value as "python-fastapi" | "java-spring" | "go-service")
+                  }
+                  className="rounded border border-gray-300 bg-white px-3 py-2 text-sm"
+                >
+                  <option value="python-fastapi">python-fastapi</option>
+                  <option value="java-spring">java-spring</option>
+                  <option value="go-service">go-service</option>
+                </select>
+                <button
+                  className="rounded bg-blue-700 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+                  onClick={() => void runDevinModernizationTrigger()}
+                  disabled={loadingModernization}
+                >
+                  {loadingModernization ? "Triggering..." : "Trigger Devin Modernization"}
+                </button>
+              </div>
+              {modernizationError ? (
+                <div className="mb-3 rounded bg-red-100 p-2 text-red-800">{modernizationError}</div>
+              ) : null}
+              {modernizationResult ? (
+                <div className="rounded border border-blue-200 bg-blue-50 p-3 text-gray-800">
+                  <div className="font-medium text-blue-900">{modernizationResult.message}</div>
+                  <div className="mt-1 text-sm">
+                    Event: {modernizationResult.event_type} | Contract: {modernizationResult.contract_id} | Target:{" "}
+                    {modernizationResult.target_stack}
+                  </div>
+                  <div className="text-sm">
+                    Repository: {modernizationResult.repository} | Decision preview:{" "}
+                    {modernizationResult.decision_preview}
+                  </div>
+                </div>
+              ) : null}
+            </div>
           </section>
 
           <FiltersBar

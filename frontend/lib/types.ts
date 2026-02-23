@@ -61,3 +61,32 @@ export type VendorDetail = Vendor & {
   top_agencies: { agency: string; obligated_amount: number }[];
   top_categories: { category: string; obligated_amount: number }[];
 };
+
+export type CobolAdjudicationDecision = "APPROVE" | "REVIEW" | "REJECT";
+
+export type CobolAdjudication = {
+  program_name: string;
+  contract_id: string;
+  vendor_id: string;
+  decision: CobolAdjudicationDecision;
+  reasons: string[];
+  inputs: {
+    contract_status: string;
+    obligated_amount: number;
+    vendor_active_contracts: number;
+    vendor_total_awards: number;
+  };
+};
+
+export type ModernizationTriggerResponse = {
+  status: "queued";
+  message: string;
+  event_type: string;
+  contract_id: string;
+  vendor_id: string;
+  cobol_path: string;
+  target_stack: string;
+  base_branch: string;
+  decision_preview: CobolAdjudicationDecision;
+  repository: string;
+};

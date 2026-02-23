@@ -1,0 +1,148 @@
+name: Devin COBOL Modernization
+
+on:
+  workflow_dispatch:
+    inputs:
+      contract_id:
+        description: "Contract ID to modernize (example: DOT-2026-00041)"
+        required: true
+        type: string
+      cobol_path:
+        description: "Path to COBOL source file"
+        required: false
+        default: "backend/legacy_cobol/CONTRACT_AWARD_ADJUDICATION.cbl"
+        type: string
+      target_stack:
+        description: "Modernization target stack"
+        required: false
+        default: "python-fastapi"
+        type: string
+      base_branch:
+        description: "Base branch for changes"
+        required: false
+        default: "main"
+        type: string
+  repository_dispatch:
+    types:
+      - devin-cobol-modernize
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: devin-cobol-modernization-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  launch-devin-modernization:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Resolve trigger payload
+        id: payload
+        env:
+          CONTRACT_ID: ${{ github.event.inputs.contract_id || github.event.client_payload.contract_id || '' }}
+          COBOL_PATH: ${{ github.event.inputs.cobol_path || github.event.client_payload.cobol_path || 'backend/legacy_cobol/CONTRACT_AWARD_ADJUDICATION.cbl' }}
+          TARGET_STACK: ${{ github.event.inputs.target_stack || github.event.client_payload.target_stack || 'python-fastapi' }}
+          BASE_BRANCH: ${{ github.event.inputs.base_branch || github.event.client_payload.base_branch || 'main' }}
+          DECISION_PREVIEW: ${{ github.event.client_payload.decision_preview || '' }}
+          VENDOR_ID: ${{ github.event.client_payload.vendor_id || '' }}
+        run: |
+          if [ -z "$CONTRACT_ID" ]; then
+            echo "Error: contract_id is required."
+            exit 1
+          fi
+
+          echo "contract_id=$CONTRACT_ID" >> "$GITHUB_OUTPUT"
+          echo "cobol_path=$COBOL_PATH" >> "$GITHUB_OUTPUT"
+          echo "target_stack=$TARGET_STACK" >> "$GITHUB_OUTPUT"
+          echo "base_branch=$BASE_BRANCH" >> "$GITHUB_OUTPUT"
+          echo "decision_preview=$DECISION_PREVIEW" >> "$GITHUB_OUTPUT"
+          echo "vendor_id=$VENDOR_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Create Devin modernization session
+        id: devin-modernize
+        env:
+          DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
+          DEVIN_PLAYBOOK_ID: ${{ secrets.DEVIN_PLAYBOOK_ID }}
+          MODERNIZATION_PROMPT: |
+            You are Devin modernizing legacy COBOL adjudication logic with strict behavior parity.
+
+            Repository context:
+            - Repo: ${{ github.repository }}
+            - Trigger: ${{ github.event_name }}
+            - Base branch: ${{ steps.payload.outputs.base_branch }}
+            - Contract ID: ${{ steps.payload.outputs.contract_id }}
+            - Vendor ID: ${{ steps.payload.outputs.vendor_id }}
+            - COBOL source path: ${{ steps.payload.outputs.cobol_path }}
+            - Target stack: ${{ steps.payload.outputs.target_stack }}
+            - Legacy decision preview: ${{ steps.payload.outputs.decision_preview }}
+
+            Goals:
+            1) Analyze the COBOL source and identify the adjudication rules.
+            2) Generate equivalent modernized implementation in the target stack.
+            3) Preserve behavioral parity for APPROVE | REVIEW | REJECT outputs.
+            4) Add/update tests using representative contract fixtures to prove parity.
+            5) Document mapping from COBOL paragraphs/rules to modern functions.
+
+            Guardrails:
+            - You MAY edit files and push focused changes.
+            - Keep changes scoped to modernization and parity tests/docs only.
+            - Do NOT perform broad refactors.
+            - Do NOT open new PRs; update the branch in place.
+            - Report assumptions and any parity risks clearly.
+        run: |
+          if [ -z "$DEVIN_API_KEY" ]; then
+            echo "Error: DEVIN_API_KEY is not set."
+            exit 1
+          fi
+
+          if [ -n "$DEVIN_PLAYBOOK_ID" ]; then
+            PAYLOAD=$(jq -n \
+              --arg pb "$DEVIN_PLAYBOOK_ID" \
+              --arg prompt "$MODERNIZATION_PROMPT" \
+              '{playbook_id: $pb, prompt: $prompt, idempotent: true}')
+          else
+            PAYLOAD=$(jq -n \
+              --arg prompt "$MODERNIZATION_PROMPT" \
+              '{prompt: $prompt, idempotent: true}')
+          fi
+
+          RESPONSE=$(curl -s -X POST \
+            -H "Authorization: Bearer $DEVIN_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            "https://api.devin.ai/v1/sessions")
+
+          ERROR_MSG=$(echo "$RESPONSE" | jq -r '.detail // empty')
+          if [ -n "$ERROR_MSG" ]; then
+            echo "Error creating Devin session: $ERROR_MSG"
+            exit 1
+          fi
+
+          SESSION_ID=$(echo "$RESPONSE" | jq -r '.session_id // empty')
+          SESSION_URL=$(echo "$RESPONSE" | jq -r '.url // empty')
+
+          if [ -z "$SESSION_ID" ] || [ -z "$SESSION_URL" ]; then
+            echo "Error: missing session details in Devin response."
+            echo "$RESPONSE"
+            exit 1
+          fi
+
+          echo "session-id=$SESSION_ID" >> "$GITHUB_OUTPUT"
+          echo "session-url=$SESSION_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Add session link to workflow summary
+        if: ${{ steps.devin-modernize.outputs.session-url != '' }}
+        run: |
+          {
+            echo "## Devin COBOL Modernization Session"
+            echo ""
+            echo "- Session ID: \`${{ steps.devin-modernize.outputs.session-id }}\`"
+            echo "- URL: ${{ steps.devin-modernize.outputs.session-url }}"
+            echo "- Contract ID: ${{ steps.payload.outputs.contract_id }}"
+            echo "- COBOL path: ${{ steps.payload.outputs.cobol_path }}"
+            echo "- Target stack: ${{ steps.payload.outputs.target_stack }}"
+          } >> "$GITHUB_STEP_SUMMARY"
