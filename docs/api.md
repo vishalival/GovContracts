@@ -47,9 +47,8 @@ Returns budget summary for one agency and fiscal year.
 
 | Status | Detail |
 |---|---|
-| 400 | agency is required (2-10 chars) |
 | 404 | Budget summary not found |
-| 422 | Validation error |
+| 422 | Validation error (missing or invalid agency/fiscal_year) |
 
 ### Example curl
 
@@ -86,7 +85,7 @@ Each contract item includes `psc_description` (string) and `naics_description` (
 |---|---|---|---|
 | agency | string | No | Agency code. Use `All` or omit for all agencies. |
 | status | string | No | One of `Active`, `Closed`, `All`. Default: `All`. |
-| fiscal_year | integer | No | Fiscal year. Default: `2026`. |
+| fiscal_year | integer | No | Fiscal year (2000–2100). Default: `2026`. |
 | limit | integer | No | Page size. Default: `25`, max: `100`. |
 | offset | integer | No | Pagination offset. Default: `0`. |
 | sort_by | string | No | Field to sort results by. One of `award_date`, `obligated_amount`. Default: `award_date`. |
@@ -198,7 +197,13 @@ Returns vendor search results.
 | Name | Type | Required | Description |
 |---|---|---|---|
 | query | string | No | Case-insensitive match on vendor name or UEI (max 100 characters). |
-| limit | integer | No | Max number of vendors. Default: `20`, max: `100`. |
+| limit | integer | No | Max number of vendors (1–100). Default: `20`. |
+
+### Error Responses
+
+| Status | Detail |
+|---|---|
+| 422 | Validation error |
 
 ### Example curl
 
