@@ -2,7 +2,7 @@
 
 Base URL: `http://localhost:8000`
 
-> _Last reviewed: 2026-02-23_
+> _Last reviewed: 2026-02-23. This file is the single source of truth for API reference documentation._
 
 ## GET /v1/agencies
 
