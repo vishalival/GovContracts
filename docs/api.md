@@ -243,6 +243,12 @@ Returns the legacy COBOL source file used for contract award adjudication.
 |---|---|---|---|
 | None | - | - | No query parameters. |
 
+### Error Responses
+
+| Status | Detail |
+|---|---|
+| 404 | Legacy COBOL source not found |
+
 ### Example curl
 
 ```bash
@@ -267,7 +273,15 @@ Evaluates one contract and vendor profile using legacy-style adjudication logic 
 
 | Name | Type | Required | Description |
 |---|---|---|---|
-| contract_id | string | Yes | Contract ID such as `DOT-2026-00041`. |
+| contract_id | string | Yes | Contract ID (5–40 characters), e.g. `DOT-2026-00041`. |
+
+### Error Responses
+
+| Status | Detail |
+|---|---|
+| 404 | Contract not found |
+| 404 | Vendor not found for contract |
+| 422 | Validation error (contract_id length must be 5–40) |
 
 ### Example curl
 
@@ -312,10 +326,22 @@ Triggers GitHub `repository_dispatch` so a workflow can launch a Devin COBOL mod
 | Name | Type | Required | Description |
 |---|---|---|---|
 | contract_id | string | Yes | Contract ID such as `DOT-2026-00041`. |
-| cobol_path | string | No | Defaults to `backend/legacy_cobol/CONTRACT_AWARD_ADJUDICATION.cbl`. |
+| cobol_path | string | No | Path to a `.cbl` file. Defaults to `backend/legacy_cobol/CONTRACT_AWARD_ADJUDICATION.cbl`. |
 | target_stack | string | No | Defaults to `python-fastapi`. |
 | base_branch | string | No | Defaults to `main`. |
 | event_type | string | No | Defaults to `devin-cobol-modernize`. |
+
+### Error Responses
+
+| Status | Detail |
+|---|---|
+| 400 | cobol_path must point to a .cbl file |
+| 404 | Contract not found |
+| 404 | Vendor not found for contract |
+| 422 | Validation error |
+| 500 | GITHUB_TOKEN is not configured |
+| 500 | GITHUB_REPOSITORY is not configured |
+| 502 | GitHub dispatch error |
 
 ### Example curl
 
