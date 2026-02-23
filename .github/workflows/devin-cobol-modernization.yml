@@ -115,6 +115,10 @@ jobs:
             Default modernization target is python-fastapi unless explicitly overridden in workflow input/payload.
             Start implementation immediately; no clarification step is needed for target stack.
 
+            **Read and follow the COBOL Modernization Playbook at `docs/COBOL_MODERNIZATION_PLAYBOOK.md`
+            in this repository.** It contains all naming conventions, architecture standards,
+            testing requirements, parity verification rules, and documentation templates.
+
             Repository context:
             - Repo: ${{ github.repository }}
             - Trigger: ${{ github.event_name }}
@@ -127,19 +131,32 @@ jobs:
             - PR number: ${{ github.event.pull_request.number || 'N/A' }}
             - Changed legacy files: ${{ steps.context.outputs.legacy_files }}
 
-            Goals:
-            1) Analyze the COBOL source and identify the adjudication rules.
-            2) Generate equivalent modernized implementation in python-fastapi (or provided target stack override).
-            3) Preserve behavioral parity for APPROVE | REVIEW | REJECT outputs.
-            4) Add or update unit tests that verify parity for normal, boundary, and edge cases.
-            5) Run the unit tests and include pass/fail status in your PR summary/comment.
-            6) Document mapping from COBOL paragraphs/rules to modern functions.
+            Goals (see playbook for full details):
+            1) Complete the COBOL Analysis Checklist (playbook §3) — identify paragraphs,
+               data items, decision logic, thresholds, and copybook dependencies.
+            2) Produce a decision matrix table mapping every COBOL branch to its output.
+            3) Generate equivalent modernized implementation in python-fastapi (or provided
+               target stack override) following the Implementation Standards (playbook §4):
+               - Extract thresholds as named constants (§4.2)
+               - Use early-return to match COBOL GO TO semantics (§4.5)
+               - Use int for monetary values, never float (§4.7)
+            4) Preserve behavioral parity for APPROVE | REVIEW | REJECT outputs.
+               Document any deviations in a parity_notes.md file (playbook §6.3).
+            5) Add or update unit tests per the Testing Standards (playbook §5):
+               - Happy path, each REJECT branch, each REVIEW branch
+               - Boundary values at threshold ± 1
+               - Edge cases and combination tests
+            6) Run the unit tests and include pass/fail status in your PR summary/comment.
+            7) Produce the mapping document (COBOL paragraph → Python function) per §7.
 
-            Guardrails:
+            Guardrails (see playbook §8 for full list):
             - You MAY edit files and push focused changes.
             - Keep changes scoped to modernization and parity tests/docs only.
+            - Preserve the original .cbl file unchanged — it is the source-of-truth reference.
             - Do NOT perform broad refactors.
             - Do NOT open new PRs; update the branch in place.
+            - Do NOT modify API response schemas without versioning.
+            - Do NOT use floating-point for monetary calculations.
             - Report assumptions and any parity risks clearly.
         run: |
           if [ -z "$DEVIN_API_KEY" ]; then
