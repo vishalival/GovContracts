@@ -541,7 +541,7 @@ curl -s "http://localhost:8000/v1/compliance/summary?agency=DOT&fiscal_year=2026
 
 Collects explicit human judgment for contracts affected by compliance drift. When called without `judgment` and `rationale`, returns the risk context and required inputs. When called with valid values, records the decision.
 
-> **Human-in-the-loop:** This endpoint is designed to require manual policy decisions. The allowed `judgment` values (`APPROVE_OVERRIDE`, `REMEDIATE_CODE`, `ESCALATE`) carry compliance implications — see the "Human Judgment Needed" note below.
+> **Human-in-the-loop:** This endpoint is designed to require manual policy decisions. The allowed `judgment` values (`APPROVE_OVERRIDE`, `REMEDIATE_CODE`, `ESCALATE`) carry compliance implications that should be reviewed by a procurement policy owner before execution.
 
 ### JSON Body
 

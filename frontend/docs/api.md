@@ -2,6 +2,30 @@
 
 Base URL: `http://localhost:8000`
 
+## GET /health
+
+Returns a simple health-check response indicating the API is running.
+
+### Query Parameters
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| None | - | - | No query parameters. |
+
+### Example curl
+
+```bash
+curl -s http://localhost:8000/health
+```
+
+### Example JSON response
+
+```json
+{
+  "status": "ok"
+}
+```
+
 ## GET /v1/agencies
 
 Returns the list of supported agencies for filter dropdowns.
@@ -81,6 +105,7 @@ Each contract item includes `psc_description` (string) and `naics_description` (
 | offset | integer | No | Pagination offset. Default: `0`. |
 | sort_by | string | No | Field to sort results by. One of `award_date`, `obligated_amount`. Default: `award_date`. |
 | sort_dir | string | No | Sort direction. One of `asc`, `desc`. Default: `desc`. |
+| category | string | No | Filter by contract category (max 50 characters). Omit for all categories. |
 
 ### Example curl
 
@@ -236,5 +261,452 @@ curl -s http://localhost:8000/v1/vendors/V003
     { "category": "Infrastructure", "obligated_amount": 188000000 },
     { "category": "IT Systems", "obligated_amount": 101000000 }
   ]
+}
+```
+
+## GET /v1/legacy/cobol/source
+
+Returns the legacy COBOL source file used for contract award adjudication.
+
+### Query Parameters
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| None | - | - | No query parameters. |
+
+### Error Responses
+
+| Status | Detail |
+|---|---|
+| 404 | Legacy COBOL source not found |
+
+### Example curl
+
+```bash
+curl -s http://localhost:8000/v1/legacy/cobol/source
+```
+
+### Example JSON response
+
+```json
+{
+  "program_name": "CONTRACT_AWARD_ADJUDICATION",
+  "path": "legacy_cobol/CONTRACT_AWARD_ADJUDICATION.cbl",
+  "content": "IDENTIFICATION DIVISION.\nPROGRAM-ID. CONTRACT-AWARD-ADJUDICATION.\n..."
+}
+```
+
+## GET /v1/legacy/cobol/adjudication
+
+Evaluates one contract and vendor profile using legacy-style adjudication logic and returns `APPROVE`, `REVIEW`, or `REJECT`. Rules are evaluated in priority order and the first matching rule determines the outcome (COBOL first-match-wins semantics), so the `reasons` array always contains exactly one element.
+
+### Query Parameters
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| contract_id | string | Yes | Contract ID (5–40 characters), e.g. `DOT-2026-00041`. |
+
+### Error Responses
+
+| Status | Detail |
+|---|---|
+| 404 | Contract not found |
+| 404 | Vendor not found for contract |
+| 422 | Validation error (contract_id length must be 5–40) |
+
+### Example curl
+
+```bash
+curl -s "http://localhost:8000/v1/legacy/cobol/adjudication?contract_id=DOT-2026-00041"
+```
+
+### Example JSON response
+
+```json
+{
+  "program_name": "CONTRACT_AWARD_ADJUDICATION",
+  "contract_id": "DOT-2026-00041",
+  "vendor_id": "V003",
+  "decision": "APPROVE",
+  "reasons": [
+    "Contract and vendor profile satisfy automated legacy award checks."
+  ],
+  "inputs": {
+    "contract_status": "Active",
+    "obligated_amount": 42000000,
+    "vendor_active_contracts": 3,
+    "vendor_total_awards": 199000000
+  }
+}
+```
+
+## POST /internal/alignment/run
+
+Triggers a regulatory alignment check that compares internal PSC and NAICS code tables against official external snapshots. Produces a JSON report, a Markdown report (`docs/ALIGNMENT_REPORT.md`), and a Markdown proposal (`docs/ALIGNMENT_PROPOSAL.md`).
+
+### Query Parameters
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| None | - | - | No query parameters. |
+
+### Example curl
+
+```bash
+curl -s -X POST http://localhost:8000/internal/alignment/run
+```
+
+### Example JSON response
+
+```json
+{
+  "status": "ok",
+  "generated_at": "2026-02-24T04:29:20.514720+00:00",
+  "summary": {
+    "psc_added": 2,
+    "psc_removed": 1,
+    "psc_modified": 2,
+    "naics_added": 0,
+    "naics_removed": 7,
+    "naics_modified": 4,
+    "severity_counts": {
+      "critical": 1,
+      "high": 1,
+      "medium": 4,
+      "low": 0
+    }
+  },
+  "files_written": {
+    "json": "backend/data/alignment_report.json",
+    "markdown_report": "docs/ALIGNMENT_REPORT.md",
+    "markdown_proposal": "docs/ALIGNMENT_PROPOSAL.md"
+  }
+}
+```
+
+## GET /internal/alignment/latest
+
+Returns the most recent alignment report. The `report` object contains per-domain diffs (`psc` and `naics`), each with `added`, `removed`, and `modified` arrays. Every drift item includes a `severity` field (`critical`, `high`, `medium`, or `low`). The `summary` object contains aggregate counts and a `severity_counts` breakdown.
+
+### Query Parameters
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| None | - | - | No query parameters. |
+
+### Error Responses
+
+| Status | Detail |
+|---|---|
+| 404 | No alignment report found. Run POST /internal/alignment/run first. |
+
+### Example curl
+
+```bash
+curl -s http://localhost:8000/internal/alignment/latest
+```
+
+### Example JSON response
+
+```json
+{
+  "generated_at": "2026-02-24T04:29:20.514720+00:00",
+  "summary": {
+    "psc_added": 2,
+    "psc_removed": 1,
+    "psc_modified": 2,
+    "naics_added": 0,
+    "naics_removed": 7,
+    "naics_modified": 4,
+    "severity_counts": {
+      "critical": 1,
+      "high": 1,
+      "medium": 4,
+      "low": 0
+    }
+  },
+  "report": {
+    "generated_at": "2026-02-24T04:29:20.514720+00:00",
+    "psc": {
+      "added": [
+        {
+          "code": "R799",
+          "official_description": "Support - Management: Regulatory Compliance Support",
+          "contracts_affected": 0,
+          "severity": "medium"
+        }
+      ],
+      "removed": [
+        {
+          "code": "Y1JZ",
+          "internal_description": "Construction of Miscellaneous Buildings",
+          "contracts_affected": 1,
+          "severity": "critical"
+        }
+      ],
+      "modified": [
+        {
+          "code": "D302",
+          "internal_description": "IT and Telecom - Systems Development",
+          "official_description": "IT and Telecommunications Systems Support Services",
+          "contracts_affected": 3,
+          "severity": "high"
+        }
+      ]
+    },
+    "naics": {
+      "added": [],
+      "removed": [
+        {
+          "code": "237310",
+          "internal_description": "Highway, Street, and Bridge Construction",
+          "contracts_affected": 1,
+          "severity": "critical"
+        }
+      ],
+      "modified": [
+        {
+          "code": "238220",
+          "internal_description": "Plumbing and HVAC Contractors",
+          "official_description": "Plumbing, Heating, and Air-Conditioning Contractors",
+          "contracts_affected": 0,
+          "severity": "low"
+        }
+      ]
+    },
+    "summary": {
+      "psc_added": 2,
+      "psc_removed": 1,
+      "psc_modified": 2,
+      "naics_added": 0,
+      "naics_removed": 7,
+      "naics_modified": 4,
+      "severity_counts": {
+        "critical": 1,
+        "high": 1,
+        "medium": 4,
+        "low": 0
+      }
+    }
+  }
+}
+```
+
+## GET /v1/compliance/summary
+
+Cross-references alignment drift against active contracts to produce a per-agency compliance risk summary. Requires an alignment report to exist (run `POST /internal/alignment/run` first).
+
+### Query Parameters
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| agency | string | No | Agency code. Omit for all agencies (reported as `ALL`). |
+| fiscal_year | integer | No | Fiscal year. Default: `2026`. |
+| include_recommendations | boolean | No | When `true`, each risk item includes a `recommended_action` field. Default: `false`. |
+
+### Error Responses
+
+| Status | Detail |
+|---|---|
+| 404 | No alignment report found. Run POST /internal/alignment/run first. |
+
+### Example curl
+
+```bash
+curl -s "http://localhost:8000/v1/compliance/summary?agency=DOT&fiscal_year=2026&include_recommendations=true"
+```
+
+### Example JSON response
+
+```json
+{
+  "fiscal_year": 2026,
+  "agency": "DOT",
+  "total_active_contracts": 6,
+  "contracts_at_risk": 2,
+  "total_at_risk_value": 85000000,
+  "risk_items": [
+    {
+      "contract_id": "DOT-2026-00041",
+      "agency": "DOT",
+      "obligated_amount": 42000000,
+      "psc_at_risk": true,
+      "naics_at_risk": false,
+      "recommended_action": "Review classification codes for this contract: PSC R706 has alignment drift"
+    }
+  ]
+}
+```
+
+## POST /v1/compliance/judgment
+
+Collects explicit human judgment for contracts affected by compliance drift. When called without `judgment` and `rationale`, returns the risk context and required inputs. When called with valid values, records the decision.
+
+> **Human-in-the-loop:** This endpoint is designed to require manual policy decisions. The allowed `judgment` values (`APPROVE_OVERRIDE`, `REMEDIATE_CODE`, `ESCALATE`) carry compliance implications that should be reviewed by a procurement policy owner before execution.
+
+### JSON Body
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| contract_id | string | Yes | Contract ID (5–40 characters), e.g. `DOT-2026-00041`. |
+| judgment | string | No | One of `APPROVE_OVERRIDE`, `REMEDIATE_CODE`, `ESCALATE`. Omit to receive risk context without recording a decision. |
+| rationale | string | No | Explanation for the decision (10–1000 characters). Required when `judgment` is provided. |
+
+### Error Responses
+
+| Status | Detail |
+|---|---|
+| 400 | judgment must be one of APPROVE_OVERRIDE, REMEDIATE_CODE, ESCALATE |
+| 404 | Contract not found |
+| 404 | No alignment report found. Run POST /internal/alignment/run first. |
+| 422 | Validation error (contract_id length, rationale length) |
+
+### Example curl (query risk context)
+
+```bash
+curl -s -X POST http://localhost:8000/v1/compliance/judgment \
+  -H "Content-Type: application/json" \
+  -d '{"contract_id": "DOT-2026-00041"}'
+```
+
+### Example JSON response (requires_human_judgment)
+
+```json
+{
+  "status": "requires_human_judgment",
+  "contract_id": "DOT-2026-00041",
+  "risk_context": {
+    "psc": "R706",
+    "naics": "488490",
+    "psc_at_risk": true,
+    "naics_at_risk": false
+  },
+  "required_inputs": [
+    "judgment (APPROVE_OVERRIDE | REMEDIATE_CODE | ESCALATE)",
+    "rationale (why this decision is acceptable for policy/compliance)"
+  ],
+  "message": "Human review required before applying compliance action. Submit both judgment and rationale."
+}
+```
+
+### Example curl (submit decision)
+
+```bash
+curl -s -X POST http://localhost:8000/v1/compliance/judgment \
+  -H "Content-Type: application/json" \
+  -d '{
+    "contract_id": "DOT-2026-00041",
+    "judgment": "APPROVE_OVERRIDE",
+    "rationale": "PSC drift is cosmetic; underlying service scope unchanged per agency review."
+  }'
+```
+
+### Example JSON response (accepted)
+
+```json
+{
+  "status": "accepted",
+  "contract_id": "DOT-2026-00041",
+  "decision": "APPROVE_OVERRIDE",
+  "rationale": "PSC drift is cosmetic; underlying service scope unchanged per agency review.",
+  "risk_context": {
+    "psc": "R706",
+    "naics": "488490",
+    "psc_at_risk": true,
+    "naics_at_risk": false
+  },
+  "human_judgment_recorded": true
+}
+```
+
+## GET /v1/docs/api
+
+Returns the raw Markdown content of the API documentation file (`docs/api.md`).
+
+### Query Parameters
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| None | - | - | No query parameters. |
+
+### Error Responses
+
+| Status | Detail |
+|---|---|
+| 404 | API docs not found |
+
+### Example curl
+
+```bash
+curl -s http://localhost:8000/v1/docs/api
+```
+
+### Example JSON response
+
+```json
+{
+  "content": "# GovContracts API (Phase 1)\n\nBase URL: `http://localhost:8000`\n..."
+}
+```
+
+## POST /v1/modernization/trigger
+
+Triggers GitHub `repository_dispatch` so a workflow can launch a Devin COBOL modernization session.
+
+### Environment Requirements (backend)
+
+| Name | Required | Description |
+|---|---|---|
+| GITHUB_TOKEN | Yes | GitHub token with permission to dispatch repository events. |
+| GITHUB_REPOSITORY | Yes | Repository slug in `owner/repo` format. |
+| GITHUB_API_URL | No | Defaults to `https://api.github.com`. |
+
+### JSON Body
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| contract_id | string | Yes | Contract ID (5–40 characters), e.g. `DOT-2026-00041`. |
+| cobol_path | string | No | Path to a `.cbl` file (5–200 characters). Defaults to `backend/legacy_cobol/CONTRACT_AWARD_ADJUDICATION.cbl`. |
+| target_stack | string | No | Target technology stack (2–40 characters). Defaults to `python-fastapi`. |
+| base_branch | string | No | Git branch name (1–100 characters). Defaults to `main`. |
+| event_type | string | No | GitHub repository dispatch event type (3–100 characters). Defaults to `devin-cobol-modernize`. |
+
+### Error Responses
+
+| Status | Detail |
+|---|---|
+| 400 | cobol_path must point to a .cbl file |
+| 404 | Contract not found |
+| 404 | Vendor not found for contract |
+| 422 | Validation error |
+| 500 | GITHUB_TOKEN is not configured |
+| 500 | GITHUB_REPOSITORY is not configured |
+| 502 | GitHub dispatch error |
+
+### Example curl
+
+```bash
+curl -s -X POST http://localhost:8000/v1/modernization/trigger \
+  -H "Content-Type: application/json" \
+  -d '{
+    "contract_id": "DOT-2026-00041",
+    "target_stack": "python-fastapi"
+  }'
+```
+
+### Example JSON response
+
+```json
+{
+  "status": "queued",
+  "message": "Devin COBOL modernization workflow dispatch requested.",
+  "event_type": "devin-cobol-modernize",
+  "contract_id": "DOT-2026-00041",
+  "vendor_id": "V003",
+  "cobol_path": "backend/legacy_cobol/CONTRACT_AWARD_ADJUDICATION.cbl",
+  "target_stack": "python-fastapi",
+  "base_branch": "main",
+  "decision_preview": "APPROVE",
+  "repository": "your-org/your-repo"
 }
 ```
