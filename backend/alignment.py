@@ -65,6 +65,26 @@ def _load_contract_usage() -> tuple[Counter[str], Counter[str]]:
     return psc_usage, naics_usage
 
 
+def _classify_severity(contracts_affected: int, drift_type: str) -> str:
+    """Classify drift severity based on contract impact and drift type.
+
+    Severity levels:
+      - critical: removed codes still referenced by active contracts
+      - high: modified descriptions on high-usage codes (>=3 contracts)
+      - medium: added codes not yet adopted, or modified descriptions on low-usage codes
+      - low: removed codes with no active contract references
+    """
+    if drift_type == "removed" and contracts_affected > 0:
+        return "critical"
+    if drift_type == "modified" and contracts_affected >= 3:
+        return "high"
+    if drift_type == "modified" and contracts_affected > 0:
+        return "medium"
+    if drift_type == "added":
+        return "medium"
+    return "low"
+
+
 def _build_domain_diff(
     *,
     internal: dict[str, str],
@@ -76,31 +96,37 @@ def _build_domain_diff(
     modified: list[dict[str, Any]] = []
 
     for code in sorted(official.keys() - internal.keys()):
+        affected = usage_counts.get(code, 0)
         added.append(
             {
                 "code": code,
                 "official_description": official[code],
-                "contracts_affected": usage_counts.get(code, 0),
+                "contracts_affected": affected,
+                "severity": _classify_severity(affected, "added"),
             }
         )
 
     for code in sorted(internal.keys() - official.keys()):
+        affected = usage_counts.get(code, 0)
         removed.append(
             {
                 "code": code,
                 "internal_description": internal[code],
-                "contracts_affected": usage_counts.get(code, 0),
+                "contracts_affected": affected,
+                "severity": _classify_severity(affected, "removed"),
             }
         )
 
     for code in sorted(internal.keys() & official.keys()):
         if internal[code] != official[code]:
+            affected = usage_counts.get(code, 0)
             modified.append(
                 {
                     "code": code,
                     "internal_description": internal[code],
                     "official_description": official[code],
-                    "contracts_affected": usage_counts.get(code, 0),
+                    "contracts_affected": affected,
+                    "severity": _classify_severity(affected, "modified"),
                 }
             )
 
@@ -236,6 +262,15 @@ def run_alignment_check() -> dict[str, Any]:
     psc_diff = _build_domain_diff(internal=internal_psc, official=official_psc, usage_counts=psc_usage)
     naics_diff = _build_domain_diff(internal=internal_naics, official=official_naics, usage_counts=naics_usage)
 
+    # Aggregate severity counts across both domains
+    all_items = (
+        psc_diff["added"] + psc_diff["removed"] + psc_diff["modified"]
+        + naics_diff["added"] + naics_diff["removed"] + naics_diff["modified"]
+    )
+    severity_counts: Counter[str] = Counter()
+    for item in all_items:
+        severity_counts[item["severity"]] += 1
+
     report = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "psc": psc_diff,
@@ -247,6 +282,12 @@ def run_alignment_check() -> dict[str, Any]:
             "naics_added": len(naics_diff["added"]),
             "naics_removed": len(naics_diff["removed"]),
             "naics_modified": len(naics_diff["modified"]),
+            "severity_counts": {
+                "critical": severity_counts.get("critical", 0),
+                "high": severity_counts.get("high", 0),
+                "medium": severity_counts.get("medium", 0),
+                "low": severity_counts.get("low", 0),
+            },
         },
     }
 

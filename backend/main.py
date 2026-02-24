@@ -257,6 +257,7 @@ def get_contracts(
     agency: str | None = Query(None),
     status: str = Query("All"),
     fiscal_year: int = Query(2026, ge=2000, le=2100),
+    category: str | None = Query(None, max_length=50),
     limit: int = Query(25, ge=1, le=100),
     offset: int = Query(0, ge=0),
     sort_by: str = Query("award_date"),
@@ -275,6 +276,9 @@ def get_contracts(
         raise HTTPException(status_code=400, detail="sort_dir must be one of asc, desc")
 
     filtered = _filter_contracts(agency=agency, status=status, fiscal_year=fiscal_year)
+
+    if category:
+        filtered = [c for c in filtered if c.get("category", "") == category]
 
     if sort_by == "obligated_amount":
         key_fn = lambda contract: int(contract["obligated_amount"])
@@ -423,6 +427,75 @@ def get_latest_alignment() -> dict[str, Any]:
         "summary": report["summary"],
         "generated_at": report["generated_at"],
         "report": report,
+    }
+
+
+@app.get("/v1/compliance/summary")
+def get_compliance_summary(
+    agency: str | None = Query(None),
+    fiscal_year: int = Query(2026, ge=2000, le=2100),
+    include_recommendations: bool = Query(False),
+) -> dict[str, Any]:
+    """Cross-reference alignment drift against active contracts to produce
+    a per-agency compliance risk summary.
+
+    When ``include_recommendations`` is true, each risk item includes a
+    ``recommended_action`` field with a suggested remediation step that
+    should be reviewed by a procurement policy owner before execution.
+    """
+    alignment_report = load_latest_alignment_report()
+    if not alignment_report:
+        raise HTTPException(
+            status_code=404,
+            detail="No alignment report found. Run POST /internal/alignment/run first.",
+        )
+
+    filtered = _filter_contracts(agency=agency, status="Active", fiscal_year=fiscal_year)
+
+    # Build a set of codes that are drifting
+    drifting_psc: set[str] = set()
+    for bucket in ("added", "removed", "modified"):
+        for item in alignment_report.get("psc", {}).get(bucket, []):
+            drifting_psc.add(item["code"])
+
+    drifting_naics: set[str] = set()
+    for bucket in ("added", "removed", "modified"):
+        for item in alignment_report.get("naics", {}).get(bucket, []):
+            drifting_naics.add(item["code"])
+
+    # Flag contracts that reference drifting codes
+    at_risk: list[dict[str, Any]] = []
+    for contract in filtered:
+        psc_drift = contract.get("psc", "") in drifting_psc
+        naics_drift = str(contract.get("naics", "")) in drifting_naics
+        if psc_drift or naics_drift:
+            entry: dict[str, Any] = {
+                "contract_id": contract["contract_id"],
+                "agency": contract["agency"],
+                "obligated_amount": int(contract["obligated_amount"]),
+                "psc_at_risk": psc_drift,
+                "naics_at_risk": naics_drift,
+            }
+            if include_recommendations:
+                reasons = []
+                if psc_drift:
+                    reasons.append(f"PSC {contract.get('psc', '')} has alignment drift")
+                if naics_drift:
+                    reasons.append(f"NAICS {contract.get('naics', '')} has alignment drift")
+                entry["recommended_action"] = (
+                    "Review classification codes for this contract: " + "; ".join(reasons)
+                )
+            at_risk.append(entry)
+
+    total_at_risk_value = sum(item["obligated_amount"] for item in at_risk)
+
+    return {
+        "fiscal_year": fiscal_year,
+        "agency": agency or "ALL",
+        "total_active_contracts": len(filtered),
+        "contracts_at_risk": len(at_risk),
+        "total_at_risk_value": total_at_risk_value,
+        "risk_items": at_risk,
     }
 
 
