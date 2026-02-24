@@ -1,0 +1,127 @@
+{
+  "generated_at": "2026-02-24T18:58:47.525770+00:00",
+  "psc": {
+    "added": [
+      {
+        "code": "R799",
+        "official_description": "Support - Management: Regulatory Compliance Support",
+        "contracts_affected": 0,
+        "severity": "medium"
+      }
+    ],
+    "removed": [
+      {
+        "code": "T550",
+        "internal_description": "Blockchain Infrastructure Consulting",
+        "contracts_affected": 0,
+        "severity": "low"
+      },
+      {
+        "code": "Y1JZ",
+        "internal_description": "Construction of Miscellaneous Buildings",
+        "contracts_affected": 1,
+        "severity": "critical"
+      }
+    ],
+    "modified": [
+      {
+        "code": "D307",
+        "internal_description": "IT Strategy Services",
+        "official_description": "IT and Telecom - IT Strategy and Architecture",
+        "contracts_affected": 1,
+        "severity": "medium"
+      }
+    ]
+  },
+  "naics": {
+    "added": [],
+    "removed": [
+      {
+        "code": "237310",
+        "internal_description": "Highway, Street, and Bridge Construction",
+        "contracts_affected": 1,
+        "severity": "critical"
+      },
+      {
+        "code": "336414",
+        "internal_description": "Guided Missile and Space Vehicle Manufacturing",
+        "contracts_affected": 2,
+        "severity": "critical"
+      },
+      {
+        "code": "424210",
+        "internal_description": "Drugs and Druggists' Sundries Merchant Wholesalers",
+        "contracts_affected": 1,
+        "severity": "critical"
+      },
+      {
+        "code": "488490",
+        "internal_description": "Other Support Activities for Road Transportation",
+        "contracts_affected": 2,
+        "severity": "critical"
+      },
+      {
+        "code": "541715",
+        "internal_description": "R&D in the Physical, Engineering, and Life Sciences (except Nanotechnology and Biotechnology)",
+        "contracts_affected": 3,
+        "severity": "critical"
+      },
+      {
+        "code": "561612",
+        "internal_description": "Security Guards and Patrol Services",
+        "contracts_affected": 1,
+        "severity": "critical"
+      },
+      {
+        "code": "561720",
+        "internal_description": "Janitorial Services",
+        "contracts_affected": 1,
+        "severity": "critical"
+      }
+    ],
+    "modified": [
+      {
+        "code": "238220",
+        "internal_description": "Plumbing and HVAC Contractors",
+        "official_description": "Plumbing, Heating, and Air-Conditioning Contractors",
+        "contracts_affected": 0,
+        "severity": "low"
+      },
+      {
+        "code": "334511",
+        "internal_description": "Search and Detection Equipment Manufacturing",
+        "official_description": "Search, Detection, Navigation, Guidance, Aeronautical, and Nautical System and Instrument Manufacturing",
+        "contracts_affected": 0,
+        "severity": "low"
+      },
+      {
+        "code": "518210",
+        "internal_description": "Computing Infrastructure Providers, Data Processing, and Related Services",
+        "official_description": "Data Processing, Hosting, and Related Services",
+        "contracts_affected": 4,
+        "severity": "high"
+      },
+      {
+        "code": "541512",
+        "internal_description": "Computer Systems Design Services",
+        "official_description": "Computer Systems Design and Related Services",
+        "contracts_affected": 3,
+        "severity": "high"
+      }
+    ]
+  },
+  "summary": {
+    "psc_added": 1,
+    "psc_removed": 2,
+    "psc_modified": 1,
+    "naics_added": 0,
+    "naics_removed": 7,
+    "naics_modified": 4,
+    "severity_counts": {
+      "critical": 8,
+      "high": 2,
+      "medium": 2,
+      "low": 3
+    }
+  }
+}
