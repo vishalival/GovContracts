@@ -28,6 +28,15 @@ class ModernizationTriggerRequest(BaseModel):
     base_branch: str = Field(default="main", min_length=1, max_length=100)
     event_type: str = Field(default="devin-cobol-modernize", min_length=3, max_length=100)
 
+
+class ComplianceJudgmentRequest(BaseModel):
+    contract_id: str = Field(..., min_length=5, max_length=40)
+    judgment: str | None = Field(
+        default=None,
+        description="Human decision: APPROVE_OVERRIDE, REMEDIATE_CODE, or ESCALATE",
+    )
+    rationale: str | None = Field(default=None, min_length=10, max_length=1000)
+
 AGENCIES: list[dict[str, Any]] = []
 BUDGETS: list[dict[str, Any]] = []
 VENDORS: list[dict[str, Any]] = []
@@ -496,6 +505,78 @@ def get_compliance_summary(
         "contracts_at_risk": len(at_risk),
         "total_at_risk_value": total_at_risk_value,
         "risk_items": at_risk,
+    }
+
+
+@app.post("/v1/compliance/judgment")
+def submit_compliance_judgment(request: ComplianceJudgmentRequest) -> dict[str, Any]:
+    """Collect explicit human judgment for contracts with compliance drift."""
+    contract = _find_contract(request.contract_id)
+    alignment_report = load_latest_alignment_report()
+    if not alignment_report:
+        raise HTTPException(
+            status_code=404,
+            detail="No alignment report found. Run POST /internal/alignment/run first.",
+        )
+
+    drifting_psc = {
+        item["code"]
+        for bucket in ("added", "removed", "modified")
+        for item in alignment_report.get("psc", {}).get(bucket, [])
+    }
+    drifting_naics = {
+        item["code"]
+        for bucket in ("added", "removed", "modified")
+        for item in alignment_report.get("naics", {}).get(bucket, [])
+    }
+
+    psc_code = str(contract.get("psc", "")).strip()
+    naics_code = str(contract.get("naics", "")).strip()
+    psc_at_risk = psc_code in drifting_psc
+    naics_at_risk = naics_code in drifting_naics
+
+    allowed_judgments = {"APPROVE_OVERRIDE", "REMEDIATE_CODE", "ESCALATE"}
+    normalized_judgment = (request.judgment or "").strip().upper()
+    rationale = (request.rationale or "").strip()
+
+    if not normalized_judgment or not rationale:
+        return {
+            "status": "requires_human_judgment",
+            "contract_id": contract["contract_id"],
+            "risk_context": {
+                "psc": psc_code,
+                "naics": naics_code,
+                "psc_at_risk": psc_at_risk,
+                "naics_at_risk": naics_at_risk,
+            },
+            "required_inputs": [
+                "judgment (APPROVE_OVERRIDE | REMEDIATE_CODE | ESCALATE)",
+                "rationale (why this decision is acceptable for policy/compliance)",
+            ],
+            "message": (
+                "Human review required before applying compliance action. "
+                "Submit both judgment and rationale."
+            ),
+        }
+
+    if normalized_judgment not in allowed_judgments:
+        raise HTTPException(
+            status_code=400,
+            detail="judgment must be one of APPROVE_OVERRIDE, REMEDIATE_CODE, ESCALATE",
+        )
+
+    return {
+        "status": "accepted",
+        "contract_id": contract["contract_id"],
+        "decision": normalized_judgment,
+        "rationale": rationale,
+        "risk_context": {
+            "psc": psc_code,
+            "naics": naics_code,
+            "psc_at_risk": psc_at_risk,
+            "naics_at_risk": naics_at_risk,
+        },
+        "human_judgment_recorded": True,
     }
 
 

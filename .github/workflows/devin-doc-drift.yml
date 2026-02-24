@@ -79,6 +79,7 @@ jobs:
             1) Detect drift between API behavior/usages and docs.
             2) Fix straightforward reference-doc drift directly in this PR branch when safe.
             3) Keep review noise low with one consolidated summary comment.
+            4) Explicitly request human judgment before documenting ambiguous policy inputs or new decision fields.
 
             What counts as drift:
             - Endpoint path/method changed but docs not updated
@@ -103,6 +104,7 @@ jobs:
                  b) files auto-updated
                  c) conceptual-doc follow-up items (if any)
                  d) brief reviewer checklist.
+               - If any endpoint requires policy interpretation or manual decision inputs, include a "Human Judgment Needed" section with explicit questions and wait for maintainer guidance before finalizing those doc details.
 
             Guardrails:
             - You MAY edit files and commit/push to this PR branch for doc fixes.
@@ -191,6 +193,7 @@ jobs:
             1) Scan API implementation/usages and docs for drift.
             2) Auto-fix only clear reference-doc drift.
             3) Avoid unnecessary churn.
+            4) Flag policy-sensitive or judgment-dependent inputs and request human confirmation before finalizing those details.
 
             Scope guidance:
             - Reference docs (safe to update): endpoint/method tables, params, response fields, status/error codes, OpenAPI/Swagger references.

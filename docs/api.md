@@ -537,6 +537,87 @@ curl -s "http://localhost:8000/v1/compliance/summary?agency=DOT&fiscal_year=2026
 }
 ```
 
+## POST /v1/compliance/judgment
+
+Collects explicit human judgment for contracts affected by compliance drift. When called without `judgment` and `rationale`, returns the risk context and required inputs. When called with valid values, records the decision.
+
+> **Human-in-the-loop:** This endpoint is designed to require manual policy decisions. The allowed `judgment` values (`APPROVE_OVERRIDE`, `REMEDIATE_CODE`, `ESCALATE`) carry compliance implications — see the "Human Judgment Needed" note below.
+
+### JSON Body
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| contract_id | string | Yes | Contract ID (5–40 characters), e.g. `DOT-2026-00041`. |
+| judgment | string | No | One of `APPROVE_OVERRIDE`, `REMEDIATE_CODE`, `ESCALATE`. Omit to receive risk context without recording a decision. |
+| rationale | string | No | Explanation for the decision (10–1000 characters). Required when `judgment` is provided. |
+
+### Error Responses
+
+| Status | Detail |
+|---|---|
+| 400 | judgment must be one of APPROVE_OVERRIDE, REMEDIATE_CODE, ESCALATE |
+| 404 | Contract not found |
+| 404 | No alignment report found. Run POST /internal/alignment/run first. |
+| 422 | Validation error (contract_id length, rationale length) |
+
+### Example curl (query risk context)
+
+```bash
+curl -s -X POST http://localhost:8000/v1/compliance/judgment \
+  -H "Content-Type: application/json" \
+  -d '{"contract_id": "DOT-2026-00041"}'
+```
+
+### Example JSON response (requires_human_judgment)
+
+```json
+{
+  "status": "requires_human_judgment",
+  "contract_id": "DOT-2026-00041",
+  "risk_context": {
+    "psc": "R706",
+    "naics": "488490",
+    "psc_at_risk": true,
+    "naics_at_risk": false
+  },
+  "required_inputs": [
+    "judgment (APPROVE_OVERRIDE | REMEDIATE_CODE | ESCALATE)",
+    "rationale (why this decision is acceptable for policy/compliance)"
+  ],
+  "message": "Human review required before applying compliance action. Submit both judgment and rationale."
+}
+```
+
+### Example curl (submit decision)
+
+```bash
+curl -s -X POST http://localhost:8000/v1/compliance/judgment \
+  -H "Content-Type: application/json" \
+  -d '{
+    "contract_id": "DOT-2026-00041",
+    "judgment": "APPROVE_OVERRIDE",
+    "rationale": "PSC drift is cosmetic; underlying service scope unchanged per agency review."
+  }'
+```
+
+### Example JSON response (accepted)
+
+```json
+{
+  "status": "accepted",
+  "contract_id": "DOT-2026-00041",
+  "decision": "APPROVE_OVERRIDE",
+  "rationale": "PSC drift is cosmetic; underlying service scope unchanged per agency review.",
+  "risk_context": {
+    "psc": "R706",
+    "naics": "488490",
+    "psc_at_risk": true,
+    "naics_at_risk": false
+  },
+  "human_judgment_recorded": true
+}
+```
+
 ## GET /v1/docs/api
 
 Returns the raw Markdown content of the API documentation file (`docs/api.md`).
