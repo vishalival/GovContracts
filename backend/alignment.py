@@ -1,3 +1,11 @@
+"""Regulatory alignment engine — compares internal PSC and NAICS code tables
+against official government registry snapshots and reports drift with contract
+impact counts.
+
+Internal tables: code_tables/psc_codes.csv, code_tables/naics_codes.csv
+Official snapshots: external_sources/official_psc_snapshot.csv, official_naics_snapshot.csv
+"""
+
 import csv
 import json
 from collections import Counter
