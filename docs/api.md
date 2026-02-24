@@ -90,7 +90,7 @@ curl -s "http://localhost:8000/v1/budget/summary?agency=DOT&fiscal_year=2026"
 
 ## GET /v1/contracts
 
-Returns paginated contracts with optional agency/status/year filters.
+Returns paginated contracts with optional agency/status/year/category filters.
 
 Each contract item includes `psc_description` (string) and `naics_description` (string) fields resolved at runtime from the CSV lookup tables in `code_tables/`. If a code is not found, the value falls back to `"Unknown PSC"` or `"Unknown NAICS"` respectively.
 ### Query Parameters
@@ -100,6 +100,7 @@ Each contract item includes `psc_description` (string) and `naics_description` (
 | agency | string | No | Agency code. Use `All` or omit for all agencies. |
 | status | string | No | One of `Active`, `Closed`, `All`. Default: `All`. |
 | fiscal_year | integer | No | Fiscal year. Default: `2026`. |
+| category | string | No | Filter by contract category (exact match, case-sensitive). Max length: `50`. Default: `None` (no filtering). |
 | limit | integer | No | Page size. Default: `25`, max: `100`. |
 | offset | integer | No | Pagination offset. Default: `0`. |
 | sort_by | string | No | Field to sort results by. One of `award_date`, `obligated_amount`. Default: `award_date`. |
@@ -108,7 +109,7 @@ Each contract item includes `psc_description` (string) and `naics_description` (
 ### Example curl
 
 ```bash
-curl -s "http://localhost:8000/v1/contracts?agency=DOT&status=Active&fiscal_year=2026&limit=10&offset=0&sort_by=award_date&sort_dir=desc"
+curl -s "http://localhost:8000/v1/contracts?agency=DOT&status=Active&fiscal_year=2026&category=IT%20Systems&limit=10&offset=0&sort_by=award_date&sort_dir=desc"
 ```
 
 ### Example JSON response
