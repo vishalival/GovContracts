@@ -2,6 +2,8 @@
 
 Base URL: `http://localhost:8000`
 
+Vercel deployment base URL: `https://data-stack-dusky.vercel.app/api` (served by Next.js API routes under `frontend/app/api/`)
+
 ## GET /health
 
 Returns a simple health-check response indicating the API is running.
@@ -309,9 +311,10 @@ Evaluates one contract and vendor profile using legacy-style adjudication logic 
 
 | Status | Detail |
 |---|---|
+| 400 | contract_id query parameter is required (5–40 chars) — returned by Next.js route |
 | 404 | Contract not found |
 | 404 | Vendor not found for contract |
-| 422 | Validation error (contract_id length must be 5–40) |
+| 422 | Validation error (contract_id length must be 5–40) — returned by FastAPI backend |
 
 ### Example curl
 
@@ -348,6 +351,12 @@ Triggers a regulatory alignment check that compares internal PSC and NAICS code 
 | Name | Type | Required | Description |
 |---|---|---|---|
 | None | - | - | No query parameters. |
+
+### Error Responses
+
+| Status | Detail |
+|---|---|
+| 500 | Failed to run alignment check (Next.js route only) |
 
 ### Example curl
 
