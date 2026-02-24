@@ -1,4 +1,4 @@
-name: Devin Doc Drift Check
+name: Devin Doc Drift Check (outdated)
 
 on:
   pull_request:
