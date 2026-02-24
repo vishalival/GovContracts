@@ -430,6 +430,75 @@ def get_latest_alignment() -> dict[str, Any]:
     }
 
 
+@app.get("/v1/compliance/summary")
+def get_compliance_summary(
+    agency: str | None = Query(None),
+    fiscal_year: int = Query(2026, ge=2000, le=2100),
+    include_recommendations: bool = Query(False),
+) -> dict[str, Any]:
+    """Cross-reference alignment drift against active contracts to produce
+    a per-agency compliance risk summary.
+
+    When ``include_recommendations`` is true, each risk item includes a
+    ``recommended_action`` field with a suggested remediation step that
+    should be reviewed by a procurement policy owner before execution.
+    """
+    alignment_report = load_latest_alignment_report()
+    if not alignment_report:
+        raise HTTPException(
+            status_code=404,
+            detail="No alignment report found. Run POST /internal/alignment/run first.",
+        )
+
+    filtered = _filter_contracts(agency=agency, status="Active", fiscal_year=fiscal_year)
+
+    # Build a set of codes that are drifting
+    drifting_psc: set[str] = set()
+    for bucket in ("added", "removed", "modified"):
+        for item in alignment_report.get("psc", {}).get(bucket, []):
+            drifting_psc.add(item["code"])
+
+    drifting_naics: set[str] = set()
+    for bucket in ("added", "removed", "modified"):
+        for item in alignment_report.get("naics", {}).get(bucket, []):
+            drifting_naics.add(item["code"])
+
+    # Flag contracts that reference drifting codes
+    at_risk: list[dict[str, Any]] = []
+    for contract in filtered:
+        psc_drift = contract.get("psc", "") in drifting_psc
+        naics_drift = str(contract.get("naics", "")) in drifting_naics
+        if psc_drift or naics_drift:
+            entry: dict[str, Any] = {
+                "contract_id": contract["contract_id"],
+                "agency": contract["agency"],
+                "obligated_amount": int(contract["obligated_amount"]),
+                "psc_at_risk": psc_drift,
+                "naics_at_risk": naics_drift,
+            }
+            if include_recommendations:
+                reasons = []
+                if psc_drift:
+                    reasons.append(f"PSC {contract.get('psc', '')} has alignment drift")
+                if naics_drift:
+                    reasons.append(f"NAICS {contract.get('naics', '')} has alignment drift")
+                entry["recommended_action"] = (
+                    "Review classification codes for this contract: " + "; ".join(reasons)
+                )
+            at_risk.append(entry)
+
+    total_at_risk_value = sum(item["obligated_amount"] for item in at_risk)
+
+    return {
+        "fiscal_year": fiscal_year,
+        "agency": agency or "ALL",
+        "total_active_contracts": len(filtered),
+        "contracts_at_risk": len(at_risk),
+        "total_at_risk_value": total_at_risk_value,
+        "risk_items": at_risk,
+    }
+
+
 @app.get("/v1/docs/api")
 def get_api_docs_markdown() -> dict[str, str]:
     if not API_DOCS_PATH.exists():
