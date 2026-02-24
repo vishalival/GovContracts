@@ -9,8 +9,8 @@ Government contracts use standardized classification codes to categorize the pro
 **Product and Service Codes (PSC)** are four-character alphanumeric codes maintained by the General Services Administration (GSA). They classify _what_ the government is buying.
 
 Examples:
-- `D302` - IT and Telecom - Systems Development
-- `R706` - Support - Management: IT Systems Development
+- `D302` - IT and Telecommunications Systems Support Services
+- `R706` - Information Technology Systems Development Services
 - `Y1QA` - Construction of Highways, Roads, Streets, Bridges, and Railways
 
 PSC codes are grouped by prefix:

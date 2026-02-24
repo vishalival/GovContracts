@@ -132,7 +132,7 @@ curl -s "http://localhost:8000/v1/contracts?agency=DOT&status=Active&fiscal_year
       "period_end": "2029-09-30",
       "psc": "R706",
       "naics": "488490",
-      "psc_description": "Support - Management: IT Systems Development",
+      "psc_description": "Information Technology Systems Development Services",
       "naics_description": "Other Support Activities for Road Transportation",
       "description": "Regional traffic management platform modernization",
       "status": "Active",
@@ -177,7 +177,7 @@ curl -s http://localhost:8000/v1/contracts/DOT-2026-00041
     "period_end": "2029-09-30",
     "psc": "R706",
     "naics": "488490",
-    "psc_description": "Support - Management: IT Systems Development",
+    "psc_description": "Information Technology Systems Development Services",
     "naics_description": "Other Support Activities for Road Transportation",
     "description": "Regional traffic management platform modernization",
     "status": "Active",
@@ -361,9 +361,9 @@ curl -s -X POST http://localhost:8000/internal/alignment/run
   "status": "ok",
   "generated_at": "2026-02-24T04:29:20.514720+00:00",
   "summary": {
-    "psc_added": 2,
+    "psc_added": 1,
     "psc_removed": 1,
-    "psc_modified": 2,
+    "psc_modified": 0,
     "naics_added": 0,
     "naics_removed": 7,
     "naics_modified": 4
@@ -404,9 +404,9 @@ curl -s http://localhost:8000/internal/alignment/latest
 {
   "generated_at": "2026-02-24T04:29:20.514720+00:00",
   "summary": {
-    "psc_added": 2,
+    "psc_added": 1,
     "psc_removed": 1,
-    "psc_modified": 2,
+    "psc_modified": 0,
     "naics_added": 0,
     "naics_removed": 7,
     "naics_modified": 4
@@ -428,14 +428,7 @@ curl -s http://localhost:8000/internal/alignment/latest
           "contracts_affected": 1
         }
       ],
-      "modified": [
-        {
-          "code": "D302",
-          "internal_description": "IT and Telecom - Systems Development",
-          "official_description": "IT and Telecommunications Systems Support Services",
-          "contracts_affected": 3
-        }
-      ]
+      "modified": []
     },
     "naics": {
       "added": [],
@@ -456,9 +449,9 @@ curl -s http://localhost:8000/internal/alignment/latest
       ]
     },
     "summary": {
-      "psc_added": 2,
+      "psc_added": 1,
       "psc_removed": 1,
-      "psc_modified": 2,
+      "psc_modified": 0,
       "naics_added": 0,
       "naics_removed": 7,
       "naics_modified": 4
