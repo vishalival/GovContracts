@@ -11,6 +11,7 @@ def main() -> None:
     summary = report["summary"]
     print(
         "Alignment check complete: "
+        f"PSC(+{summary['psc_added']}/-{summary['psc_removed']}/~{summary['psc_modified']}), "
         f"NAICS(+{summary['naics_added']}/-{summary['naics_removed']}/~{summary['naics_modified']})"
     )
 

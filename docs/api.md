@@ -338,6 +338,135 @@ curl -s "http://localhost:8000/v1/legacy/cobol/adjudication?contract_id=DOT-2026
 }
 ```
 
+## POST /internal/alignment/run
+
+Triggers a regulatory alignment check that compares internal PSC and NAICS code tables against official external snapshots. Produces a JSON report, a Markdown report (`docs/ALIGNMENT_REPORT.md`), and a Markdown proposal (`docs/ALIGNMENT_PROPOSAL.md`).
+
+### Query Parameters
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| None | - | - | No query parameters. |
+
+### Example curl
+
+```bash
+curl -s -X POST http://localhost:8000/internal/alignment/run
+```
+
+### Example JSON response
+
+```json
+{
+  "status": "ok",
+  "generated_at": "2026-02-24T04:29:20.514720+00:00",
+  "summary": {
+    "psc_added": 2,
+    "psc_removed": 1,
+    "psc_modified": 2,
+    "naics_added": 0,
+    "naics_removed": 7,
+    "naics_modified": 4
+  },
+  "files_written": {
+    "json": "backend/data/alignment_report.json",
+    "markdown_report": "docs/ALIGNMENT_REPORT.md",
+    "markdown_proposal": "docs/ALIGNMENT_PROPOSAL.md"
+  }
+}
+```
+
+## GET /internal/alignment/latest
+
+Returns the most recent alignment report. The `report` object contains per-domain diffs (`psc` and `naics`), each with `added`, `removed`, and `modified` arrays. The `summary` object contains aggregate counts.
+
+### Query Parameters
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| None | - | - | No query parameters. |
+
+### Error Responses
+
+| Status | Detail |
+|---|---|
+| 404 | No alignment report found. Run POST /internal/alignment/run first. |
+
+### Example curl
+
+```bash
+curl -s http://localhost:8000/internal/alignment/latest
+```
+
+### Example JSON response
+
+```json
+{
+  "generated_at": "2026-02-24T04:29:20.514720+00:00",
+  "summary": {
+    "psc_added": 2,
+    "psc_removed": 1,
+    "psc_modified": 2,
+    "naics_added": 0,
+    "naics_removed": 7,
+    "naics_modified": 4
+  },
+  "report": {
+    "generated_at": "2026-02-24T04:29:20.514720+00:00",
+    "psc": {
+      "added": [
+        {
+          "code": "R799",
+          "official_description": "Support - Management: Regulatory Compliance Support",
+          "contracts_affected": 0
+        }
+      ],
+      "removed": [
+        {
+          "code": "Y1JZ",
+          "internal_description": "Construction of Miscellaneous Buildings",
+          "contracts_affected": 1
+        }
+      ],
+      "modified": [
+        {
+          "code": "D302",
+          "internal_description": "IT and Telecom - Systems Development",
+          "official_description": "IT and Telecommunications Systems Support Services",
+          "contracts_affected": 3
+        }
+      ]
+    },
+    "naics": {
+      "added": [],
+      "removed": [
+        {
+          "code": "237310",
+          "internal_description": "Highway, Street, and Bridge Construction",
+          "contracts_affected": 1
+        }
+      ],
+      "modified": [
+        {
+          "code": "238220",
+          "internal_description": "Plumbing and HVAC Contractors",
+          "official_description": "Plumbing, Heating, and Air-Conditioning Contractors",
+          "contracts_affected": 0
+        }
+      ]
+    },
+    "summary": {
+      "psc_added": 2,
+      "psc_removed": 1,
+      "psc_modified": 2,
+      "naics_added": 0,
+      "naics_removed": 7,
+      "naics_modified": 4
+    }
+  }
+}
+```
+
 ## GET /v1/docs/api
 
 Returns the raw Markdown content of the API documentation file (`docs/api.md`).

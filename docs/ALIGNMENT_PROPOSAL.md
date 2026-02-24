@@ -5,12 +5,22 @@ Do not auto-apply without approval.
 
 ## Suggested Changes
 
-- Add NAICS `325413`: `In-Vitro Diagnostic Substance Manufacturing`.
-- Add NAICS `518210`: `Data Processing, Hosting, and Related Services`.
+- Add PSC `R799`: `Support - Management: Regulatory Compliance Support`.
+- Add PSC `V221`: `AIT Controlled Goods Transportation`.
+- Update PSC `D302` from `IT and Telecom - Systems Development` to `IT and Telecommunications Systems Support Services`.
+- Update PSC `R706` from `Support - Management: IT Systems Development` to `Information Technology Systems Development Services`.
+- Review PSC `Y1JZ` for removal/deprecation handling (currently internal only: `Construction of Miscellaneous Buildings`).
 - Update NAICS `238220` from `Plumbing and HVAC Contractors` to `Plumbing, Heating, and Air-Conditioning Contractors`.
 - Update NAICS `334511` from `Search and Detection Equipment Manufacturing` to `Search, Detection, Navigation, Guidance, Aeronautical, and Nautical System and Instrument Manufacturing`.
+- Update NAICS `518210` from `Computing Infrastructure Providers, Data Processing, and Related Services` to `Data Processing, Hosting, and Related Services`.
 - Update NAICS `541512` from `Computer Systems Design Services` to `Computer Systems Design and Related Services`.
-- Update NAICS `541611` from `Administrative Management Consulting Services` to `Administrative Management and General Management Consulting Services`.
+- Review NAICS `237310` for removal/deprecation handling (currently internal only: `Highway, Street, and Bridge Construction`).
+- Review NAICS `336414` for removal/deprecation handling (currently internal only: `Guided Missile and Space Vehicle Manufacturing`).
+- Review NAICS `424210` for removal/deprecation handling (currently internal only: `Drugs and Druggists' Sundries Merchant Wholesalers`).
+- Review NAICS `488490` for removal/deprecation handling (currently internal only: `Other Support Activities for Road Transportation`).
+- Review NAICS `541715` for removal/deprecation handling (currently internal only: `R&D in the Physical, Engineering, and Life Sciences (except Nanotechnology and Biotechnology)`).
+- Review NAICS `561612` for removal/deprecation handling (currently internal only: `Security Guards and Patrol Services`).
+- Review NAICS `561720` for removal/deprecation handling (currently internal only: `Janitorial Services`).
 
 ## Review Checklist
 

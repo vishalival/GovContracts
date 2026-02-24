@@ -256,7 +256,7 @@ export default function DashboardPage() {
       const latest = await fetchLatestAlignment();
       setAlignmentData(latest);
       setAlignmentRunMessage(
-        `Alignment check completed (${runResult.summary.naics_added + runResult.summary.naics_removed + runResult.summary.naics_modified} changes detected).`
+        `Alignment check completed (${runResult.summary.psc_added + runResult.summary.psc_removed + runResult.summary.psc_modified + runResult.summary.naics_added + runResult.summary.naics_removed + runResult.summary.naics_modified} changes detected).`
       );
     } catch {
       setAlignmentError("Could not run alignment check. Please try again.");
@@ -270,11 +270,16 @@ export default function DashboardPage() {
       return [];
     }
 
-    type ImpactedCode = { domain: "NAICS"; change: "added" | "removed" | "modified"; code: string; contracts: number };
+    type ImpactedCode = {
+      domain: "PSC" | "NAICS";
+      change: "added" | "removed" | "modified";
+      code: string;
+      contracts: number;
+    };
     const impacted: ImpactedCode[] = [];
 
     const pushItems = (
-      domain: "NAICS",
+      domain: "PSC" | "NAICS",
       change: "added" | "removed" | "modified",
       items: Array<AlignmentDiffAdded | AlignmentDiffRemoved | AlignmentDiffModified>
     ) => {
@@ -283,6 +288,9 @@ export default function DashboardPage() {
       }
     };
 
+    pushItems("PSC", "added", alignmentData.report.psc.added);
+    pushItems("PSC", "removed", alignmentData.report.psc.removed);
+    pushItems("PSC", "modified", alignmentData.report.psc.modified);
     pushItems("NAICS", "added", alignmentData.report.naics.added);
     pushItems("NAICS", "removed", alignmentData.report.naics.removed);
     pushItems("NAICS", "modified", alignmentData.report.naics.modified);
@@ -389,7 +397,7 @@ export default function DashboardPage() {
           <section className="rounded-lg border border-gray-200 bg-white p-4 text-sm">
             <div className="mb-1 font-semibold text-gray-900">Regulatory Alignment</div>
             <div className="mb-3 text-gray-600">
-              Compare internal NAICS tables against official snapshots and summarize impact.
+              Compare internal PSC and NAICS tables against official snapshots and summarize impact.
             </div>
             <button
               className="mb-3 rounded bg-gray-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
@@ -409,7 +417,10 @@ export default function DashboardPage() {
             ) : alignmentData ? (
               <div className="space-y-2 rounded border border-gray-200 bg-gray-50 p-3">
                 <div className="text-gray-700">Last run: {new Date(alignmentData.generated_at).toLocaleString()}</div>
-                <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+                <div className="grid grid-cols-1 gap-2 md:grid-cols-6">
+                  <div>PSC added: {alignmentData.summary.psc_added}</div>
+                  <div>PSC removed: {alignmentData.summary.psc_removed}</div>
+                  <div>PSC modified: {alignmentData.summary.psc_modified}</div>
                   <div>NAICS added: {alignmentData.summary.naics_added}</div>
                   <div>NAICS removed: {alignmentData.summary.naics_removed}</div>
                   <div>NAICS modified: {alignmentData.summary.naics_modified}</div>
