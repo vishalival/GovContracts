@@ -2,6 +2,30 @@
 
 Base URL: `http://localhost:8000`
 
+## GET /health
+
+Returns a simple health-check response indicating the API is running.
+
+### Query Parameters
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| None | - | - | No query parameters. |
+
+### Example curl
+
+```bash
+curl -s http://localhost:8000/health
+```
+
+### Example JSON response
+
+```json
+{
+  "status": "ok"
+}
+```
+
 ## GET /v1/agencies
 
 Returns the list of supported agencies for filter dropdowns.
@@ -273,7 +297,7 @@ curl -s http://localhost:8000/v1/legacy/cobol/source
 
 ## GET /v1/legacy/cobol/adjudication
 
-Evaluates one contract and vendor profile using legacy-style adjudication logic and returns `APPROVE`, `REVIEW`, or `REJECT`.
+Evaluates one contract and vendor profile using legacy-style adjudication logic and returns `APPROVE`, `REVIEW`, or `REJECT`. Rules are evaluated in priority order and the first matching rule determines the outcome (COBOL first-match-wins semantics), so the `reasons` array always contains exactly one element.
 
 ### Query Parameters
 
@@ -312,6 +336,36 @@ curl -s "http://localhost:8000/v1/legacy/cobol/adjudication?contract_id=DOT-2026
     "vendor_active_contracts": 3,
     "vendor_total_awards": 199000000
   }
+}
+```
+
+## GET /v1/docs/api
+
+Returns the raw Markdown content of the API documentation file (`docs/api.md`).
+
+### Query Parameters
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| None | - | - | No query parameters. |
+
+### Error Responses
+
+| Status | Detail |
+|---|---|
+| 404 | API docs not found |
+
+### Example curl
+
+```bash
+curl -s http://localhost:8000/v1/docs/api
+```
+
+### Example JSON response
+
+```json
+{
+  "content": "# GovContracts API (Phase 1)\n\nBase URL: `http://localhost:8000`\n..."
 }
 ```
 
