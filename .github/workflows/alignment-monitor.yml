@@ -75,11 +75,11 @@ jobs:
             PAYLOAD=$(jq -n \
               --arg pb "$DEVIN_PLAYBOOK_ID" \
               --arg prompt "$REVIEW_PROMPT" \
-              '{playbook_id: $pb, prompt: $prompt, idempotent: true}')
+              '{playbook_id: $pb, prompt: $prompt}')
           else
             PAYLOAD=$(jq -n \
               --arg prompt "$REVIEW_PROMPT" \
-              '{prompt: $prompt, idempotent: true}')
+              '{prompt: $prompt}')
           fi
 
           RESPONSE=$(curl -s -X POST \
