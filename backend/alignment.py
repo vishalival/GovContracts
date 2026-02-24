@@ -12,7 +12,9 @@ DATA_DIR = ROOT_DIR / "backend" / "data"
 DOCS_DIR = ROOT_DIR / "docs"
 
 INTERNAL_NAICS_PATH = CODE_TABLES_DIR / "naics_codes.csv"
+INTERNAL_PSC_PATH = CODE_TABLES_DIR / "psc_codes.csv"
 OFFICIAL_NAICS_PATH = EXTERNAL_SOURCES_DIR / "official_naics_snapshot.csv"
+OFFICIAL_PSC_PATH = EXTERNAL_SOURCES_DIR / "official_psc_snapshot.csv"
 CONTRACTS_PATH = DATA_DIR / "contracts.json"
 
 ALIGNMENT_REPORT_PATH = DATA_DIR / "alignment_report.json"
@@ -35,20 +37,24 @@ def _load_code_table(path: Path) -> dict[str, str]:
     return result
 
 
-def _load_contract_usage() -> Counter[str]:
+def _load_contract_usage() -> tuple[Counter[str], Counter[str]]:
+    psc_usage: Counter[str] = Counter()
     naics_usage: Counter[str] = Counter()
     if not CONTRACTS_PATH.exists():
-        return naics_usage
+        return psc_usage, naics_usage
 
     with CONTRACTS_PATH.open("r", encoding="utf-8") as file:
         contracts = json.load(file)
 
     for contract in contracts:
+        psc = str(contract.get("psc", "")).strip()
+        if psc:
+            psc_usage[psc] += 1
         naics = str(contract.get("naics", "")).strip()
         if naics:
             naics_usage[naics] += 1
 
-    return naics_usage
+    return psc_usage, naics_usage
 
 
 def _build_domain_diff(
@@ -122,7 +128,20 @@ def _render_alignment_report_md(report: dict[str, Any]) -> str:
             "",
             "| Domain | Added | Removed | Modified |",
             "|---|---:|---:|---:|",
+            f"| PSC | {summary['psc_added']} | {summary['psc_removed']} | {summary['psc_modified']} |",
             f"| NAICS | {summary['naics_added']} | {summary['naics_removed']} | {summary['naics_modified']} |",
+            "",
+            "## PSC Added",
+            "",
+            render_rows(report["psc"]["added"], "added"),
+            "",
+            "## PSC Removed",
+            "",
+            render_rows(report["psc"]["removed"], "removed"),
+            "",
+            "## PSC Modified",
+            "",
+            render_rows(report["psc"]["modified"], "modified"),
             "",
             "## NAICS Added",
             "",
@@ -152,8 +171,7 @@ def _render_alignment_proposal_md(report: dict[str, Any]) -> str:
         "",
     ]
 
-    def add_proposals(diff: dict[str, list[dict[str, Any]]]) -> None:
-        label = "NAICS"
+    def add_proposals(label: str, diff: dict[str, list[dict[str, Any]]]) -> None:
         for item in diff["added"]:
             lines.append(f"- Add {label} `{item['code']}`: `{item['official_description']}`.")
         for item in diff["modified"]:
@@ -167,7 +185,8 @@ def _render_alignment_proposal_md(report: dict[str, Any]) -> str:
                 f"(currently internal only: `{item['internal_description']}`)."
             )
 
-    add_proposals(report["naics"])
+    add_proposals("PSC", report["psc"])
+    add_proposals("NAICS", report["naics"])
 
     if lines[-1] == "":
         lines.append("- No differences detected.")
@@ -201,15 +220,22 @@ def _write_text(path: Path, content: str) -> None:
 
 
 def run_alignment_check() -> dict[str, Any]:
+    internal_psc = _load_code_table(INTERNAL_PSC_PATH)
     internal_naics = _load_code_table(INTERNAL_NAICS_PATH)
+    official_psc = _load_code_table(OFFICIAL_PSC_PATH)
     official_naics = _load_code_table(OFFICIAL_NAICS_PATH)
-    naics_usage = _load_contract_usage()
+    psc_usage, naics_usage = _load_contract_usage()
+    psc_diff = _build_domain_diff(internal=internal_psc, official=official_psc, usage_counts=psc_usage)
     naics_diff = _build_domain_diff(internal=internal_naics, official=official_naics, usage_counts=naics_usage)
 
     report = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
+        "psc": psc_diff,
         "naics": naics_diff,
         "summary": {
+            "psc_added": len(psc_diff["added"]),
+            "psc_removed": len(psc_diff["removed"]),
+            "psc_modified": len(psc_diff["modified"]),
             "naics_added": len(naics_diff["added"]),
             "naics_removed": len(naics_diff["removed"]),
             "naics_modified": len(naics_diff["modified"]),

@@ -1,19 +1,79 @@
 {
-  "generated_at": "2026-02-24T00:23:43.791541+00:00",
-  "naics": {
+  "generated_at": "2026-02-24T04:29:20.514720+00:00",
+  "psc": {
     "added": [
       {
-        "code": "325413",
-        "official_description": "In-Vitro Diagnostic Substance Manufacturing",
+        "code": "R799",
+        "official_description": "Support - Management: Regulatory Compliance Support",
+        "contracts_affected": 0
+      },
+      {
+        "code": "V221",
+        "official_description": "AIT Controlled Goods Transportation",
+        "contracts_affected": 0
+      }
+    ],
+    "removed": [
+      {
+        "code": "Y1JZ",
+        "internal_description": "Construction of Miscellaneous Buildings",
+        "contracts_affected": 1
+      }
+    ],
+    "modified": [
+      {
+        "code": "D302",
+        "internal_description": "IT and Telecom - Systems Development",
+        "official_description": "IT and Telecommunications Systems Support Services",
+        "contracts_affected": 3
+      },
+      {
+        "code": "R706",
+        "internal_description": "Support - Management: IT Systems Development",
+        "official_description": "Information Technology Systems Development Services",
+        "contracts_affected": 3
+      }
+    ]
+  },
+  "naics": {
+    "added": [],
+    "removed": [
+      {
+        "code": "237310",
+        "internal_description": "Highway, Street, and Bridge Construction",
         "contracts_affected": 1
       },
       {
-        "code": "518210",
-        "official_description": "Data Processing, Hosting, and Related Services",
-        "contracts_affected": 4
+        "code": "336414",
+        "internal_description": "Guided Missile and Space Vehicle Manufacturing",
+        "contracts_affected": 2
+      },
+      {
+        "code": "424210",
+        "internal_description": "Drugs and Druggists' Sundries Merchant Wholesalers",
+        "contracts_affected": 1
+      },
+      {
+        "code": "488490",
+        "internal_description": "Other Support Activities for Road Transportation",
+        "contracts_affected": 2
+      },
+      {
+        "code": "541715",
+        "internal_description": "R&D in the Physical, Engineering, and Life Sciences (except Nanotechnology and Biotechnology)",
+        "contracts_affected": 3
+      },
+      {
+        "code": "561612",
+        "internal_description": "Security Guards and Patrol Services",
+        "contracts_affected": 1
+      },
+      {
+        "code": "561720",
+        "internal_description": "Janitorial Services",
+        "contracts_affected": 1
       }
     ],
-    "removed": [],
     "modified": [
       {
         "code": "238220",
@@ -28,22 +88,25 @@
         "contracts_affected": 0
       },
       {
+        "code": "518210",
+        "internal_description": "Computing Infrastructure Providers, Data Processing, and Related Services",
+        "official_description": "Data Processing, Hosting, and Related Services",
+        "contracts_affected": 4
+      },
+      {
         "code": "541512",
         "internal_description": "Computer Systems Design Services",
         "official_description": "Computer Systems Design and Related Services",
         "contracts_affected": 3
-      },
-      {
-        "code": "541611",
-        "internal_description": "Administrative Management Consulting Services",
-        "official_description": "Administrative Management and General Management Consulting Services",
-        "contracts_affected": 2
       }
     ]
   },
   "summary": {
-    "naics_added": 2,
-    "naics_removed": 0,
+    "psc_added": 2,
+    "psc_removed": 1,
+    "psc_modified": 2,
+    "naics_added": 0,
+    "naics_removed": 7,
     "naics_modified": 4
   }
 }

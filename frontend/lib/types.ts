@@ -119,6 +119,9 @@ export type AlignmentDomainDiff = {
 };
 
 export type AlignmentReportSummary = {
+  psc_added: number;
+  psc_removed: number;
+  psc_modified: number;
   naics_added: number;
   naics_removed: number;
   naics_modified: number;
@@ -126,6 +129,7 @@ export type AlignmentReportSummary = {
 
 export type AlignmentReport = {
   generated_at: string;
+  psc: AlignmentDomainDiff;
   naics: AlignmentDomainDiff;
   summary: AlignmentReportSummary;
 };
