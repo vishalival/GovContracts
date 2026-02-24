@@ -104,6 +104,7 @@ Each contract item includes `psc_description` (string) and `naics_description` (
 | offset | integer | No | Pagination offset. Default: `0`. |
 | sort_by | string | No | Field to sort results by. One of `award_date`, `obligated_amount`. Default: `award_date`. |
 | sort_dir | string | No | Sort direction. One of `asc`, `desc`. Default: `desc`. |
+| category | string | No | Filter by contract category (max 50 characters). Omit for all categories. |
 
 ### Example curl
 
@@ -487,6 +488,52 @@ curl -s http://localhost:8000/internal/alignment/latest
       }
     }
   }
+}
+```
+
+## GET /v1/compliance/summary
+
+Cross-references alignment drift against active contracts to produce a per-agency compliance risk summary. Requires an alignment report to exist (run `POST /internal/alignment/run` first).
+
+### Query Parameters
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| agency | string | No | Agency code. Omit for all agencies (reported as `ALL`). |
+| fiscal_year | integer | No | Fiscal year. Default: `2026`. |
+| include_recommendations | boolean | No | When `true`, each risk item includes a `recommended_action` field. Default: `false`. |
+
+### Error Responses
+
+| Status | Detail |
+|---|---|
+| 404 | No alignment report found. Run POST /internal/alignment/run first. |
+
+### Example curl
+
+```bash
+curl -s "http://localhost:8000/v1/compliance/summary?agency=DOT&fiscal_year=2026&include_recommendations=true"
+```
+
+### Example JSON response
+
+```json
+{
+  "fiscal_year": 2026,
+  "agency": "DOT",
+  "total_active_contracts": 6,
+  "contracts_at_risk": 2,
+  "total_at_risk_value": 85000000,
+  "risk_items": [
+    {
+      "contract_id": "DOT-2026-00041",
+      "agency": "DOT",
+      "obligated_amount": 42000000,
+      "psc_at_risk": true,
+      "naics_at_risk": false,
+      "recommended_action": "Review classification codes for this contract: PSC R706 has alignment drift"
+    }
+  ]
 }
 ```
 
