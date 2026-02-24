@@ -61,7 +61,7 @@ jobs:
         id: devin-review
         env:
           DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
-          DEVIN_PLAYBOOK_ID: ${{ secrets.DEVIN_PLAYBOOK_ID }}
+          DEVIN_PLAYBOOK_ID: "playbook-94781f6132084f8c9f479953d9847904"
           REVIEW_PROMPT: |
             You are Devin acting as an API documentation drift reviewer and fixer for this PR.
 
@@ -115,16 +115,10 @@ jobs:
             exit 1
           fi
 
-          if [ -n "$DEVIN_PLAYBOOK_ID" ]; then
-            PAYLOAD=$(jq -n \
-              --arg pb "$DEVIN_PLAYBOOK_ID" \
-              --arg prompt "$REVIEW_PROMPT" \
-              '{playbook_id: $pb, prompt: $prompt, idempotent: true}')
-          else
-            PAYLOAD=$(jq -n \
-              --arg prompt "$REVIEW_PROMPT" \
-              '{prompt: $prompt, idempotent: true}')
-          fi
+          PAYLOAD=$(jq -n \
+            --arg pb "$DEVIN_PLAYBOOK_ID" \
+            --arg prompt "$REVIEW_PROMPT" \
+            '{playbook_id: $pb, prompt: $prompt, idempotent: true}')
 
           RESPONSE=$(curl -s -X POST \
             -H "Authorization: Bearer $DEVIN_API_KEY" \
@@ -175,7 +169,7 @@ jobs:
         id: devin-scan
         env:
           DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
-          DEVIN_PLAYBOOK_ID: ${{ secrets.DEVIN_PLAYBOOK_ID }}
+          DEVIN_PLAYBOOK_ID: "playbook-94781f6132084f8c9f479953d9847904"
           REVIEW_PROMPT: |
             You are Devin performing a scheduled full-repository API-doc drift scan.
 
@@ -210,16 +204,10 @@ jobs:
             exit 1
           fi
 
-          if [ -n "$DEVIN_PLAYBOOK_ID" ]; then
-            PAYLOAD=$(jq -n \
-              --arg pb "$DEVIN_PLAYBOOK_ID" \
-              --arg prompt "$REVIEW_PROMPT" \
-              '{playbook_id: $pb, prompt: $prompt, idempotent: true}')
-          else
-            PAYLOAD=$(jq -n \
-              --arg prompt "$REVIEW_PROMPT" \
-              '{prompt: $prompt, idempotent: true}')
-          fi
+          PAYLOAD=$(jq -n \
+            --arg pb "$DEVIN_PLAYBOOK_ID" \
+            --arg prompt "$REVIEW_PROMPT" \
+            '{playbook_id: $pb, prompt: $prompt, idempotent: true}')
 
           RESPONSE=$(curl -s -X POST \
             -H "Authorization: Bearer $DEVIN_API_KEY" \
