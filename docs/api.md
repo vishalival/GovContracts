@@ -297,7 +297,7 @@ curl -s http://localhost:8000/v1/legacy/cobol/source
 
 ## GET /v1/legacy/cobol/adjudication
 
-Evaluates one contract and vendor profile using legacy-style adjudication logic and returns `APPROVE`, `REVIEW`, or `REJECT`.
+Evaluates one contract and vendor profile using legacy-style adjudication logic and returns `APPROVE`, `REVIEW`, or `REJECT`. Rules are evaluated in priority order and the first matching rule determines the outcome (COBOL first-match-wins semantics), so the `reasons` array always contains exactly one element.
 
 ### Query Parameters
 
