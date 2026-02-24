@@ -6,9 +6,8 @@ Do not auto-apply without approval.
 ## Suggested Changes
 
 - Add PSC `R799`: `Support - Management: Regulatory Compliance Support`.
-- Add PSC `V221`: `AIT Controlled Goods Transportation`.
-- Update PSC `D302` from `IT and Telecom - Systems Development` to `IT and Telecommunications Systems Support Services`.
-- Update PSC `R706` from `Support - Management: IT Systems Development` to `Information Technology Systems Development Services`.
+- Update PSC `D307` from `IT Strategy Services` to `IT and Telecom - IT Strategy and Architecture`.
+- Review PSC `T550` for removal/deprecation handling (currently internal only: `Blockchain Infrastructure Consulting`).
 - Review PSC `Y1JZ` for removal/deprecation handling (currently internal only: `Construction of Miscellaneous Buildings`).
 - Update NAICS `238220` from `Plumbing and HVAC Contractors` to `Plumbing, Heating, and Air-Conditioning Contractors`.
 - Update NAICS `334511` from `Search and Detection Equipment Manufacturing` to `Search, Detection, Navigation, Guidance, Aeronautical, and Nautical System and Instrument Manufacturing`.

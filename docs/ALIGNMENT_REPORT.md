@@ -1,10 +1,10 @@
 # Regulatory Alignment Report
 
-Run timestamp: `2026-02-24T15:20:25.869858+00:00`
+Run timestamp: `2026-02-24T18:52:10.507865+00:00`
 
 | Domain | Added | Removed | Modified |
 |---|---:|---:|---:|
-| PSC | 2 | 1 | 2 |
+| PSC | 1 | 2 | 1 |
 | NAICS | 0 | 7 | 4 |
 
 ## PSC Added
@@ -12,20 +12,19 @@ Run timestamp: `2026-02-24T15:20:25.869858+00:00`
 | Code | Details | Contracts Affected |
 |---|---|---:|
 | `R799` | Official: Support - Management: Regulatory Compliance Support | 0 |
-| `V221` | Official: AIT Controlled Goods Transportation | 0 |
 
 ## PSC Removed
 
 | Code | Details | Contracts Affected |
 |---|---|---:|
+| `T550` | Internal: Blockchain Infrastructure Consulting | 0 |
 | `Y1JZ` | Internal: Construction of Miscellaneous Buildings | 1 |
 
 ## PSC Modified
 
 | Code | Details | Contracts Affected |
 |---|---|---:|
-| `D302` | Internal: IT and Telecom - Systems Development -> Official: IT and Telecommunications Systems Support Services | 3 |
-| `R706` | Internal: Support - Management: IT Systems Development -> Official: Information Technology Systems Development Services | 3 |
+| `D307` | Internal: IT Strategy Services -> Official: IT and Telecom - IT Strategy and Architecture | 1 |
 
 ## NAICS Added
 
