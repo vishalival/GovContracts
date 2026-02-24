@@ -1,5 +1,7 @@
 import type {
   Agency,
+  AlignmentLatestResponse,
+  AlignmentRunResponse,
   BudgetSummary,
   CobolAdjudication,
   ModernizationTriggerResponse,
@@ -104,4 +106,14 @@ export async function triggerDevinModernization(params: {
       base_branch: params.baseBranch ?? "main"
     })
   });
+}
+
+export async function runAlignmentCheck(): Promise<AlignmentRunResponse> {
+  return request<AlignmentRunResponse>("/internal/alignment/run", {
+    method: "POST"
+  });
+}
+
+export async function fetchLatestAlignment(): Promise<AlignmentLatestResponse> {
+  return request<AlignmentLatestResponse>("/internal/alignment/latest");
 }

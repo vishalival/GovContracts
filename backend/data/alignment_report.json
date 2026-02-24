@@ -1,0 +1,49 @@
+{
+  "generated_at": "2026-02-24T00:23:43.791541+00:00",
+  "naics": {
+    "added": [
+      {
+        "code": "325413",
+        "official_description": "In-Vitro Diagnostic Substance Manufacturing",
+        "contracts_affected": 1
+      },
+      {
+        "code": "518210",
+        "official_description": "Data Processing, Hosting, and Related Services",
+        "contracts_affected": 4
+      }
+    ],
+    "removed": [],
+    "modified": [
+      {
+        "code": "238220",
+        "internal_description": "Plumbing and HVAC Contractors",
+        "official_description": "Plumbing, Heating, and Air-Conditioning Contractors",
+        "contracts_affected": 0
+      },
+      {
+        "code": "334511",
+        "internal_description": "Search and Detection Equipment Manufacturing",
+        "official_description": "Search, Detection, Navigation, Guidance, Aeronautical, and Nautical System and Instrument Manufacturing",
+        "contracts_affected": 0
+      },
+      {
+        "code": "541512",
+        "internal_description": "Computer Systems Design Services",
+        "official_description": "Computer Systems Design and Related Services",
+        "contracts_affected": 3
+      },
+      {
+        "code": "541611",
+        "internal_description": "Administrative Management Consulting Services",
+        "official_description": "Administrative Management and General Management Consulting Services",
+        "contracts_affected": 2
+      }
+    ]
+  },
+  "summary": {
+    "naics_added": 2,
+    "naics_removed": 0,
+    "naics_modified": 4
+  }
+}

@@ -10,8 +10,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from adjudication import adjudicate_contract
+from alignment import load_latest_alignment_report, run_alignment_check
 from code_tables import enrich_contract, load_code_tables
-
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
@@ -87,6 +87,7 @@ def _load_data() -> None:
     BUDGETS = _load_json_file(DATA_DIR / "budgets.json")
     VENDORS = _load_json_file(DATA_DIR / "vendors.json")
     CONTRACTS = _load_json_file(DATA_DIR / "contracts.json")
+    load_code_tables()
     _refresh_vendor_metrics()
 
 
@@ -231,7 +232,6 @@ def _dispatch_repository_event(*, event_type: str, client_payload: dict[str, Any
 @app.on_event("startup")
 def startup_load_data() -> None:
     _load_data()
-    load_code_tables()
 
 
 @app.get("/health")
@@ -392,6 +392,37 @@ def trigger_cobol_modernization(request: ModernizationTriggerRequest) -> dict[st
         "base_branch": request.base_branch,
         "decision_preview": adjudication["decision"],
         "repository": dispatch_metadata["repository"],
+    }
+
+
+@app.post("/internal/alignment/run")
+def run_internal_alignment() -> dict[str, Any]:
+    report = run_alignment_check()
+    return {
+        "status": "ok",
+        "summary": report["summary"],
+        "generated_at": report["generated_at"],
+        "files_written": {
+            "json": "backend/data/alignment_report.json",
+            "markdown_report": "docs/ALIGNMENT_REPORT.md",
+            "markdown_proposal": "docs/ALIGNMENT_PROPOSAL.md",
+        },
+    }
+
+
+@app.get("/internal/alignment/latest")
+def get_latest_alignment() -> dict[str, Any]:
+    report = load_latest_alignment_report()
+    if not report:
+        raise HTTPException(
+            status_code=404,
+            detail="No alignment report found. Run POST /internal/alignment/run first.",
+        )
+
+    return {
+        "summary": report["summary"],
+        "generated_at": report["generated_at"],
+        "report": report,
     }
 
 
