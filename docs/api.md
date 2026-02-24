@@ -106,6 +106,14 @@ Each contract item includes `psc_description` (string) and `naics_description` (
 | sort_dir | string | No | Sort direction. One of `asc`, `desc`. Default: `desc`. |
 | category | string | No | Filter by contract category (max 50 characters). Omit for all categories. |
 
+### Error Responses
+
+| Status | Detail |
+|---|---|
+| 400 | status must be one of All, Active, Closed |
+| 400 | sort_by must be one of award_date, obligated_amount |
+| 400 | sort_dir must be one of asc, desc |
+
 ### Example curl
 
 ```bash
