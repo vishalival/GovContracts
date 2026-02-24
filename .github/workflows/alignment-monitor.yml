@@ -1,0 +1,126 @@
+name: Regulatory Alignment Monitor
+
+on:
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  alignment-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install backend dependencies
+        run: pip install -r backend/requirements.txt
+
+      - name: Run alignment check
+        run: python backend/tools/run_alignment_check.py
+
+      - name: Detect alignment report changes
+        id: diff-check
+        run: |
+          if git diff --quiet -- "backend/data/alignment_report.json" "docs/ALIGNMENT_REPORT.md" "docs/ALIGNMENT_PROPOSAL.md"; then
+            echo "No alignment report changes to commit."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create Devin session for alignment review
+        if: ${{ steps.diff-check.outputs.changed == 'true' }}
+        id: devin-alignment
+        env:
+          DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
+          DEVIN_PLAYBOOK_ID: ${{ secrets.DEVIN_PLAYBOOK_ID }}
+          REVIEW_PROMPT: |
+            You are Devin acting as a regulatory alignment analyst for procurement classification tables.
+
+            Trigger context:
+            - Repository: ${{ github.repository }}
+            - Trigger: ${{ github.event_name }}
+            - Branch: ${{ github.ref_name }}
+            - Updated artifacts:
+              - backend/data/alignment_report.json
+              - docs/ALIGNMENT_REPORT.md
+              - docs/ALIGNMENT_PROPOSAL.md
+
+            Tasks:
+            1) Review the latest alignment report and proposal for correctness and clarity.
+            2) Tighten recommendation language in docs/ALIGNMENT_PROPOSAL.md if needed.
+            3) Keep changes scoped to alignment artifacts only (no backend/frontend code changes).
+            4) Summarize key drift impacts and review checklist in a concise report.
+
+            Guardrails:
+            - Do NOT auto-apply source table edits in this run.
+            - Do NOT open new PRs.
+            - Keep recommendations human-in-the-loop.
+        run: |
+          if [ -z "$DEVIN_API_KEY" ]; then
+            echo "Error: DEVIN_API_KEY is not set."
+            exit 1
+          fi
+
+          if [ -n "$DEVIN_PLAYBOOK_ID" ]; then
+            PAYLOAD=$(jq -n \
+              --arg pb "$DEVIN_PLAYBOOK_ID" \
+              --arg prompt "$REVIEW_PROMPT" \
+              '{playbook_id: $pb, prompt: $prompt, idempotent: true}')
+          else
+            PAYLOAD=$(jq -n \
+              --arg prompt "$REVIEW_PROMPT" \
+              '{prompt: $prompt, idempotent: true}')
+          fi
+
+          RESPONSE=$(curl -s -X POST \
+            -H "Authorization: Bearer $DEVIN_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            "https://api.devin.ai/v1/sessions")
+
+          ERROR_MSG=$(echo "$RESPONSE" | jq -r '.detail // empty')
+          if [ -n "$ERROR_MSG" ]; then
+            echo "Error creating Devin session: $ERROR_MSG"
+            exit 1
+          fi
+
+          SESSION_ID=$(echo "$RESPONSE" | jq -r '.session_id // empty')
+          SESSION_URL=$(echo "$RESPONSE" | jq -r '.url // empty')
+
+          if [ -z "$SESSION_ID" ] || [ -z "$SESSION_URL" ]; then
+            echo "Error: missing session details in Devin response."
+            echo "$RESPONSE"
+            exit 1
+          fi
+
+          echo "session-id=$SESSION_ID" >> "$GITHUB_OUTPUT"
+          echo "session-url=$SESSION_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Add Devin session to workflow summary
+        if: ${{ steps.devin-alignment.outputs.session-url != '' }}
+        run: |
+          {
+            echo "## Devin Alignment Session"
+            echo ""
+            echo "- Session ID: \`${{ steps.devin-alignment.outputs.session-id }}\`"
+            echo "- URL: ${{ steps.devin-alignment.outputs.session-url }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit alignment reports if changed
+        if: ${{ steps.diff-check.outputs.changed == 'true' }}
+        run: |
+          git config user.name "govcontracts-bot"
+          git config user.email "govcontracts-bot@users.noreply.github.com"
+          git add backend/data/alignment_report.json docs/ALIGNMENT_REPORT.md docs/ALIGNMENT_PROPOSAL.md
+          git commit -m "chore: update regulatory alignment reports"
+          git push

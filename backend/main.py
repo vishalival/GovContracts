@@ -9,6 +9,8 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from alignment import load_latest_alignment_report, run_alignment_check
+from code_tables import get_naics_description, load_code_tables
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
@@ -84,6 +86,7 @@ def _load_data() -> None:
     BUDGETS = _load_json_file(DATA_DIR / "budgets.json")
     VENDORS = _load_json_file(DATA_DIR / "vendors.json")
     CONTRACTS = _load_json_file(DATA_DIR / "contracts.json")
+    load_code_tables()
     _refresh_vendor_metrics()
 
 
@@ -173,6 +176,12 @@ def _find_contract(contract_id: str) -> dict[str, Any]:
         if contract["contract_id"] == contract_id:
             return contract
     raise HTTPException(status_code=404, detail="Contract not found")
+
+
+def _with_code_descriptions(contract: dict[str, Any]) -> dict[str, Any]:
+    item = dict(contract)
+    item["naics_description"] = get_naics_description(str(contract.get("naics", "")))
+    return item
 
 
 def _legacy_cobol_award_decision(contract: dict[str, Any], vendor: dict[str, Any]) -> dict[str, Any]:
@@ -297,7 +306,7 @@ def get_contracts(
 
     filtered = sorted(filtered, key=key_fn, reverse=(sort_dir == "desc"))
     total = len(filtered)
-    paginated = filtered[offset : offset + limit]
+    paginated = [_with_code_descriptions(contract) for contract in filtered[offset : offset + limit]]
     return {
         "total": total,
         "limit": limit,
@@ -310,7 +319,7 @@ def get_contracts(
 def get_contract(contract_id: str) -> dict[str, Any]:
     for contract in CONTRACTS:
         if contract["contract_id"] == contract_id:
-            return {"item": contract}
+            return {"item": _with_code_descriptions(contract)}
     raise HTTPException(status_code=404, detail="Contract not found")
 
 
@@ -405,6 +414,37 @@ def trigger_cobol_modernization(request: ModernizationTriggerRequest) -> dict[st
         "base_branch": request.base_branch,
         "decision_preview": adjudication["decision"],
         "repository": dispatch_metadata["repository"],
+    }
+
+
+@app.post("/internal/alignment/run")
+def run_internal_alignment() -> dict[str, Any]:
+    report = run_alignment_check()
+    return {
+        "status": "ok",
+        "summary": report["summary"],
+        "generated_at": report["generated_at"],
+        "files_written": {
+            "json": "backend/data/alignment_report.json",
+            "markdown_report": "docs/ALIGNMENT_REPORT.md",
+            "markdown_proposal": "docs/ALIGNMENT_PROPOSAL.md",
+        },
+    }
+
+
+@app.get("/internal/alignment/latest")
+def get_latest_alignment() -> dict[str, Any]:
+    report = load_latest_alignment_report()
+    if not report:
+        raise HTTPException(
+            status_code=404,
+            detail="No alignment report found. Run POST /internal/alignment/run first.",
+        )
+
+    return {
+        "summary": report["summary"],
+        "generated_at": report["generated_at"],
+        "report": report,
     }
 
 

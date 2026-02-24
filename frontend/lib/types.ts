@@ -32,6 +32,7 @@ export type Contract = {
   period_end: string;
   psc: string;
   naics: string;
+  naics_description: string | null;
   description: string;
   status: ContractStatus;
   category: string;
@@ -89,4 +90,58 @@ export type ModernizationTriggerResponse = {
   base_branch: string;
   decision_preview: CobolAdjudicationDecision;
   repository: string;
+};
+
+export type AlignmentDiffAdded = {
+  code: string;
+  official_description: string;
+  contracts_affected: number;
+};
+
+export type AlignmentDiffRemoved = {
+  code: string;
+  internal_description: string;
+  contracts_affected: number;
+};
+
+export type AlignmentDiffModified = {
+  code: string;
+  internal_description: string;
+  official_description: string;
+  contracts_affected: number;
+};
+
+export type AlignmentDomainDiff = {
+  added: AlignmentDiffAdded[];
+  removed: AlignmentDiffRemoved[];
+  modified: AlignmentDiffModified[];
+};
+
+export type AlignmentReportSummary = {
+  naics_added: number;
+  naics_removed: number;
+  naics_modified: number;
+};
+
+export type AlignmentReport = {
+  generated_at: string;
+  naics: AlignmentDomainDiff;
+  summary: AlignmentReportSummary;
+};
+
+export type AlignmentLatestResponse = {
+  generated_at: string;
+  summary: AlignmentReportSummary;
+  report: AlignmentReport;
+};
+
+export type AlignmentRunResponse = {
+  status: "ok";
+  generated_at: string;
+  summary: AlignmentReportSummary;
+  files_written: {
+    json: string;
+    markdown_report: string;
+    markdown_proposal: string;
+  };
 };

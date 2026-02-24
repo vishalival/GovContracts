@@ -68,6 +68,8 @@ curl -s "http://localhost:8000/v1/budget/summary?agency=DOT&fiscal_year=2026"
 
 Returns paginated contracts with optional agency/status/year filters.
 
+NAICS descriptions are derived from the source-of-truth code table under `code_tables/naics_codes.csv`.
+
 ### Query Parameters
 
 | Name | Type | Required | Description |
@@ -106,7 +108,8 @@ curl -s "http://localhost:8000/v1/contracts?agency=DOT&status=Active&fiscal_year
       "award_date": "2026-01-14",
       "period_end": "2029-09-30",
       "psc": "R706",
-      "naics": "488490",
+      "naics": "541512",
+      "naics_description": "Computer Systems Design Services",
       "description": "Regional traffic management platform modernization",
       "status": "Active",
       "category": "IT Systems",
@@ -120,6 +123,8 @@ curl -s "http://localhost:8000/v1/contracts?agency=DOT&status=Active&fiscal_year
 ## GET /v1/contracts/{contract_id}
 
 Returns complete detail for one contract.
+
+NAICS descriptions are derived from the source-of-truth code table under `code_tables/naics_codes.csv`.
 
 ### Path Parameters
 
@@ -149,7 +154,8 @@ curl -s http://localhost:8000/v1/contracts/DOT-2026-00041
     "award_date": "2026-01-14",
     "period_end": "2029-09-30",
     "psc": "R706",
-    "naics": "488490",
+    "naics": "541512",
+    "naics_description": "Computer Systems Design Services",
     "description": "Regional traffic management platform modernization",
     "status": "Active",
     "category": "IT Systems",
