@@ -257,6 +257,7 @@ def get_contracts(
     agency: str | None = Query(None),
     status: str = Query("All"),
     fiscal_year: int = Query(2026, ge=2000, le=2100),
+    category: str | None = Query(None, max_length=50),
     limit: int = Query(25, ge=1, le=100),
     offset: int = Query(0, ge=0),
     sort_by: str = Query("award_date"),
@@ -275,6 +276,9 @@ def get_contracts(
         raise HTTPException(status_code=400, detail="sort_dir must be one of asc, desc")
 
     filtered = _filter_contracts(agency=agency, status=status, fiscal_year=fiscal_year)
+
+    if category:
+        filtered = [c for c in filtered if c.get("category", "") == category]
 
     if sort_by == "obligated_amount":
         key_fn = lambda contract: int(contract["obligated_amount"])
