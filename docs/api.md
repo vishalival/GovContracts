@@ -490,6 +490,63 @@ curl -s http://localhost:8000/internal/alignment/latest
 }
 ```
 
+## GET /v1/compliance/summary
+
+Cross-references the latest alignment drift report against active contracts to produce a per-agency compliance risk summary. Contracts referencing PSC or NAICS codes that are drifting (added, removed, or modified vs. official snapshots) are flagged as "at risk."
+
+> **Note:** This endpoint requires a prior `POST /internal/alignment/run` call to generate an alignment report. The compliance risk model and recommended actions are conceptual — see the PR or project documentation for the full rationale.
+
+### Query Parameters
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| agency | string | No | Agency code, e.g. `DOT`. Omit or pass `null` for all agencies. |
+| fiscal_year | integer | No | Fiscal year (2000–2100). Default: `2026`. |
+| include_recommendations | boolean | No | When `true`, each risk item includes a `recommended_action` field. Default: `false`. |
+
+### Error Responses
+
+| Status | Detail |
+|---|---|
+| 404 | No alignment report found. Run POST /internal/alignment/run first. |
+
+### Example curl
+
+```bash
+curl -s "http://localhost:8000/v1/compliance/summary?agency=DOT&fiscal_year=2026&include_recommendations=true"
+```
+
+### Example JSON response
+
+```json
+{
+  "fiscal_year": 2026,
+  "agency": "DOT",
+  "total_active_contracts": 6,
+  "contracts_at_risk": 2,
+  "total_at_risk_value": 84000000,
+  "risk_items": [
+    {
+      "contract_id": "DOT-2026-00041",
+      "agency": "DOT",
+      "obligated_amount": 42000000,
+      "psc_at_risk": true,
+      "naics_at_risk": false,
+      "recommended_action": "Review classification codes for this contract: PSC R706 has alignment drift"
+    },
+    {
+      "contract_id": "DOT-2026-00055",
+      "agency": "DOT",
+      "obligated_amount": 42000000,
+      "psc_at_risk": false,
+      "naics_at_risk": true
+    }
+  ]
+}
+```
+
+> The `recommended_action` field is only present on risk items when `include_recommendations=true`. The second item above shows the shape when the flag is `false` or the item has no recommendation.
+
 ## GET /v1/docs/api
 
 Returns the raw Markdown content of the API documentation file (`docs/api.md`).
