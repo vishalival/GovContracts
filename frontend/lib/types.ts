@@ -32,7 +32,8 @@ export type Contract = {
   period_end: string;
   psc: string;
   naics: string;
-  naics_description: string | null;
+  psc_description?: string;
+  naics_description?: string;
   description: string;
   status: ContractStatus;
   category: string;

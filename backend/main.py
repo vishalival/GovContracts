@@ -9,8 +9,9 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from adjudication import adjudicate_contract
 from alignment import load_latest_alignment_report, run_alignment_check
-from code_tables import get_naics_description, load_code_tables
+from code_tables import enrich_contract, load_code_tables
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
@@ -178,38 +179,15 @@ def _find_contract(contract_id: str) -> dict[str, Any]:
     raise HTTPException(status_code=404, detail="Contract not found")
 
 
-def _with_code_descriptions(contract: dict[str, Any]) -> dict[str, Any]:
-    item = dict(contract)
-    item["naics_description"] = get_naics_description(str(contract.get("naics", "")))
-    return item
-
-
 def _legacy_cobol_award_decision(contract: dict[str, Any], vendor: dict[str, Any]) -> dict[str, Any]:
-    reasons: list[str] = []
-    obligated_amount = int(contract["obligated_amount"])
-    active_contracts = int(vendor.get("active_contracts", 0))
-    total_awards = int(vendor.get("total_awards", 0))
+    """Delegate to the modernized adjudication module.
 
-    if contract["status"] != "Active":
-        reasons.append("Contract is not active and requires no further award action.")
-        return {"decision": "REJECT", "reasons": reasons}
-
-    if obligated_amount < 1_000_000:
-        reasons.append("Obligated amount is below the modernization threshold.")
-        return {"decision": "REJECT", "reasons": reasons}
-
-    if obligated_amount >= 120_000_000:
-        reasons.append("High dollar amount requires additional federal review controls.")
-    if active_contracts >= 5:
-        reasons.append("Vendor has high active workload concentration.")
-    if total_awards >= 500_000_000:
-        reasons.append("Vendor cumulative awards exceed policy watch threshold.")
-
-    if reasons:
-        return {"decision": "REVIEW", "reasons": reasons}
-
-    reasons.append("Contract and vendor profile satisfy automated legacy award checks.")
-    return {"decision": "APPROVE", "reasons": reasons}
+    This wrapper preserves the existing function signature so that all
+    call-sites continue to work unchanged.  The actual rule evaluation
+    now lives in ``adjudication.py``, a faithful line-by-line translation
+    of the COBOL program ``CONTRACT_AWARD_ADJUDICATION.cbl``.
+    """
+    return adjudicate_contract(contract, vendor)
 
 
 def _dispatch_repository_event(*, event_type: str, client_payload: dict[str, Any]) -> dict[str, str]:
@@ -306,12 +284,12 @@ def get_contracts(
 
     filtered = sorted(filtered, key=key_fn, reverse=(sort_dir == "desc"))
     total = len(filtered)
-    paginated = [_with_code_descriptions(contract) for contract in filtered[offset : offset + limit]]
+    paginated = filtered[offset : offset + limit]
     return {
         "total": total,
         "limit": limit,
         "offset": offset,
-        "items": paginated,
+        "items": [enrich_contract(c) for c in paginated],
     }
 
 
@@ -319,7 +297,7 @@ def get_contracts(
 def get_contract(contract_id: str) -> dict[str, Any]:
     for contract in CONTRACTS:
         if contract["contract_id"] == contract_id:
-            return {"item": _with_code_descriptions(contract)}
+            return {"item": enrich_contract(contract)}
     raise HTTPException(status_code=404, detail="Contract not found")
 
 

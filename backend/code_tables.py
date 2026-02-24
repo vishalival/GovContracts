@@ -1,33 +1,50 @@
+"""Lookup helpers for PSC and NAICS classification code tables.
+
+Loads the CSV source-of-truth files from the ``code_tables/`` directory
+and exposes simple functions to resolve a code into its human-readable
+description.
+"""
+
 import csv
 from pathlib import Path
+from typing import Dict
 
-ROOT_DIR = Path(__file__).resolve().parent.parent
-CODE_TABLES_DIR = ROOT_DIR / "code_tables"
-NAICS_CODES_PATH = CODE_TABLES_DIR / "naics_codes.csv"
+CODE_TABLES_DIR = Path(__file__).resolve().parent.parent / "code_tables"
 
-NAICS_CODES: dict[str, str] = {}
+_psc_lookup: Dict[str, str] = {}
+_naics_lookup: Dict[str, str] = {}
 
 
-def _load_csv_codes(path: Path) -> dict[str, str]:
-    if not path.exists():
-        return {}
-
-    codes: dict[str, str] = {}
-    with path.open("r", encoding="utf-8", newline="") as file:
-        reader = csv.DictReader(file)
+def _load_csv(path: Path) -> Dict[str, str]:
+    """Read a two-column CSV (code, description) into a dict."""
+    mapping: Dict[str, str] = {}
+    with path.open("r", encoding="utf-8") as fh:
+        reader = csv.DictReader(fh)
         for row in reader:
-            code = (row.get("code") or "").strip()
-            description = (row.get("description") or "").strip()
-            if code and description:
-                codes[code] = description
-    return codes
+            mapping[row["code"].strip()] = row["description"].strip()
+    return mapping
 
 
 def load_code_tables() -> None:
-    global NAICS_CODES
-    NAICS_CODES = _load_csv_codes(NAICS_CODES_PATH)
+    """Load (or reload) the PSC and NAICS lookup tables from disk."""
+    global _psc_lookup, _naics_lookup
+    _psc_lookup = _load_csv(CODE_TABLES_DIR / "psc_codes.csv")
+    _naics_lookup = _load_csv(CODE_TABLES_DIR / "naics_codes.csv")
 
 
-def get_naics_description(code: str) -> str | None:
-    normalized = code.strip() if code else ""
-    return NAICS_CODES.get(normalized)
+def get_psc_description(code: str) -> str:
+    """Return the human-readable description for a PSC code, or a fallback."""
+    return _psc_lookup.get(code, "Unknown PSC")
+
+
+def get_naics_description(code: str) -> str:
+    """Return the human-readable description for a NAICS code, or a fallback."""
+    return _naics_lookup.get(code, "Unknown NAICS")
+
+
+def enrich_contract(contract: dict) -> dict:
+    """Return a shallow copy of *contract* with description fields added."""
+    enriched = dict(contract)
+    enriched["psc_description"] = get_psc_description(contract.get("psc", ""))
+    enriched["naics_description"] = get_naics_description(contract.get("naics", ""))
+    return enriched

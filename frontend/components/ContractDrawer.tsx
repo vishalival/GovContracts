@@ -52,8 +52,8 @@ export default function ContractDrawer({
               <div>Total Value: {money(contract.total_value)}</div>
               <div>Award Date: {contract.award_date}</div>
               <div>Period End: {contract.period_end}</div>
-              <div>PSC: {contract.psc}</div>
-              <div>NAICS: {contract.naics} — {contract.naics_description ?? "Unknown code"}</div>
+              <div>PSC: {contract.psc}{contract.psc_description ? ` - ${contract.psc_description}` : ""}</div>
+              <div>NAICS: {contract.naics}{contract.naics_description ? ` - ${contract.naics_description}` : ""}</div>
               <div>Category: {contract.category}</div>
               <div>Office: {contract.program_office}</div>
             </div>
