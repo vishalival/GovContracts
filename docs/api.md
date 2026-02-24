@@ -366,7 +366,13 @@ curl -s -X POST http://localhost:8000/internal/alignment/run
     "psc_modified": 2,
     "naics_added": 0,
     "naics_removed": 7,
-    "naics_modified": 4
+    "naics_modified": 4,
+    "severity_counts": {
+      "critical": 1,
+      "high": 1,
+      "medium": 4,
+      "low": 0
+    }
   },
   "files_written": {
     "json": "backend/data/alignment_report.json",
@@ -378,7 +384,7 @@ curl -s -X POST http://localhost:8000/internal/alignment/run
 
 ## GET /internal/alignment/latest
 
-Returns the most recent alignment report. The `report` object contains per-domain diffs (`psc` and `naics`), each with `added`, `removed`, and `modified` arrays. The `summary` object contains aggregate counts.
+Returns the most recent alignment report. The `report` object contains per-domain diffs (`psc` and `naics`), each with `added`, `removed`, and `modified` arrays. Every drift item includes a `severity` field (`critical`, `high`, `medium`, or `low`). The `summary` object contains aggregate counts and a `severity_counts` breakdown.
 
 ### Query Parameters
 
@@ -409,7 +415,13 @@ curl -s http://localhost:8000/internal/alignment/latest
     "psc_modified": 2,
     "naics_added": 0,
     "naics_removed": 7,
-    "naics_modified": 4
+    "naics_modified": 4,
+    "severity_counts": {
+      "critical": 1,
+      "high": 1,
+      "medium": 4,
+      "low": 0
+    }
   },
   "report": {
     "generated_at": "2026-02-24T04:29:20.514720+00:00",
@@ -418,14 +430,16 @@ curl -s http://localhost:8000/internal/alignment/latest
         {
           "code": "R799",
           "official_description": "Support - Management: Regulatory Compliance Support",
-          "contracts_affected": 0
+          "contracts_affected": 0,
+          "severity": "medium"
         }
       ],
       "removed": [
         {
           "code": "Y1JZ",
           "internal_description": "Construction of Miscellaneous Buildings",
-          "contracts_affected": 1
+          "contracts_affected": 1,
+          "severity": "critical"
         }
       ],
       "modified": [
@@ -433,7 +447,8 @@ curl -s http://localhost:8000/internal/alignment/latest
           "code": "D302",
           "internal_description": "IT and Telecom - Systems Development",
           "official_description": "IT and Telecommunications Systems Support Services",
-          "contracts_affected": 3
+          "contracts_affected": 3,
+          "severity": "high"
         }
       ]
     },
@@ -443,7 +458,8 @@ curl -s http://localhost:8000/internal/alignment/latest
         {
           "code": "237310",
           "internal_description": "Highway, Street, and Bridge Construction",
-          "contracts_affected": 1
+          "contracts_affected": 1,
+          "severity": "critical"
         }
       ],
       "modified": [
@@ -451,7 +467,8 @@ curl -s http://localhost:8000/internal/alignment/latest
           "code": "238220",
           "internal_description": "Plumbing and HVAC Contractors",
           "official_description": "Plumbing, Heating, and Air-Conditioning Contractors",
-          "contracts_affected": 0
+          "contracts_affected": 0,
+          "severity": "low"
         }
       ]
     },
@@ -461,7 +478,13 @@ curl -s http://localhost:8000/internal/alignment/latest
       "psc_modified": 2,
       "naics_added": 0,
       "naics_removed": 7,
-      "naics_modified": 4
+      "naics_modified": 4,
+      "severity_counts": {
+        "critical": 1,
+        "high": 1,
+        "medium": 4,
+        "low": 0
+      }
     }
   }
 }
