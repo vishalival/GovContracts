@@ -65,6 +65,13 @@ Returns budget summary for one agency and fiscal year.
 | fiscal_year | integer | No | Fiscal year. Default: `2026`. |
 | agency | string | Yes | Agency code, e.g. `DOT`. |
 
+### Error Responses
+
+| Status | Detail |
+|---|---|
+| 404 | Budget summary not found |
+| 422 | Validation error (agency length must be 2–10 characters, fiscal_year must be 2000–2100) |
+
 ### Example curl
 
 ```bash
@@ -93,7 +100,6 @@ curl -s "http://localhost:8000/v1/budget/summary?agency=DOT&fiscal_year=2026"
 Returns paginated contracts with optional agency/status/year filters.
 
 Each contract item includes `psc_description` (string) and `naics_description` (string) fields resolved at runtime from the CSV lookup tables in `code_tables/`. If a code is not found, the value falls back to `"Unknown PSC"` or `"Unknown NAICS"` respectively.
-
 ### Query Parameters
 
 | Name | Type | Required | Description |
@@ -106,6 +112,14 @@ Each contract item includes `psc_description` (string) and `naics_description` (
 | sort_by | string | No | Field to sort results by. One of `award_date`, `obligated_amount`. Default: `award_date`. |
 | sort_dir | string | No | Sort direction. One of `asc`, `desc`. Default: `desc`. |
 | category | string | No | Filter by contract category (max 50 characters). Omit for all categories. |
+
+### Error Responses
+
+| Status | Detail |
+|---|---|
+| 400 | status must be one of All, Active, Closed |
+| 400 | sort_by must be one of award_date, obligated_amount |
+| 400 | sort_dir must be one of asc, desc |
 
 ### Example curl
 
@@ -155,6 +169,12 @@ Returns complete detail for one contract. The response item includes `psc_descri
 | Name | Type | Required | Description |
 |---|---|---|---|
 | contract_id | string | Yes | Contract ID such as `DOT-2026-00041`. |
+
+### Error Responses
+
+| Status | Detail |
+|---|---|
+| 404 | Contract not found |
 
 ### Example curl
 
@@ -234,6 +254,12 @@ Returns detailed vendor profile, totals, and top agencies/categories.
 | Name | Type | Required | Description |
 |---|---|---|---|
 | vendor_id | string | Yes | Vendor ID such as `V003`. |
+
+### Error Responses
+
+| Status | Detail |
+|---|---|
+| 404 | Vendor not found |
 
 ### Example curl
 
