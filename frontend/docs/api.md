@@ -120,6 +120,7 @@ Each contract item includes `psc_description` (string) and `naics_description` (
 | 400 | status must be one of All, Active, Closed |
 | 400 | sort_by must be one of award_date, obligated_amount |
 | 400 | sort_dir must be one of asc, desc |
+| 422 | Validation error (fiscal_year must be 2000–2100, limit must be 1–100, offset must be ≥ 0, category max 50 characters) |
 
 ### Example curl
 
@@ -220,6 +221,12 @@ Returns vendor search results.
 |---|---|---|---|
 | query | string | No | Case-insensitive match on vendor name or UEI. |
 | limit | integer | No | Max number of vendors. Default: `20`, max: `100`. |
+
+### Error Responses
+
+| Status | Detail |
+|---|---|
+| 422 | Validation error (query max 100 characters, limit must be 1–100) |
 
 ### Example curl
 
@@ -535,6 +542,7 @@ Cross-references alignment drift against active contracts to produce a per-agenc
 | Status | Detail |
 |---|---|
 | 404 | No alignment report found. Run POST /internal/alignment/run first. |
+| 422 | Validation error (fiscal_year must be 2000–2100) |
 
 ### Example curl
 
