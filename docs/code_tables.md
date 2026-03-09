@@ -52,4 +52,4 @@ The CSV files in the `code_tables/` directory serve as the source of truth for c
 - `code_tables/psc_codes.csv` - PSC code lookup table
 - `code_tables/naics_codes.csv` - NAICS code lookup table
 
-These tables are loaded by the backend at startup and used to enrich contract responses with human-readable descriptions (`psc_description` and `naics_description` fields).
+These tables are loaded by the backend at startup and used to enrich contract responses with human-readable descriptions (`psc_description` and `naics_description` fields). If a contract references a code that is not present in the lookup table, the description falls back to `"Unknown PSC"` or `"Unknown NAICS"` respectively.
