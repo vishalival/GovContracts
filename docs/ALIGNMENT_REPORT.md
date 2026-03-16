@@ -1,6 +1,6 @@
 # Regulatory Alignment Report
 
-Run timestamp: `2026-03-09T04:53:59.354029+00:00`
+Run timestamp: `2026-03-16T05:19:20.575841+00:00`
 
 | Domain | Added | Removed | Modified |
 |---|---:|---:|---:|
