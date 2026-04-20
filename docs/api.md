@@ -65,6 +65,13 @@ Returns budget summary for one agency and fiscal year.
 | fiscal_year | integer | No | Fiscal year. Default: `2026`. |
 | agency | string | Yes | Agency code, e.g. `DOT`. |
 
+### Error Responses
+
+| Status | Detail |
+|---|---|
+| 404 | Budget summary not found |
+| 422 | Validation error (agency length must be 2–10 characters, fiscal_year must be 2000–2100) |
+
 ### Example curl
 
 ```bash
@@ -105,6 +112,15 @@ Each contract item includes `psc_description` (string) and `naics_description` (
 | sort_by | string | No | Field to sort results by. One of `award_date`, `obligated_amount`. Default: `award_date`. |
 | sort_dir | string | No | Sort direction. One of `asc`, `desc`. Default: `desc`. |
 | category | string | No | Filter by contract category (max 50 characters). Omit for all categories. |
+
+### Error Responses
+
+| Status | Detail |
+|---|---|
+| 400 | status must be one of All, Active, Closed |
+| 400 | sort_by must be one of award_date, obligated_amount |
+| 400 | sort_dir must be one of asc, desc |
+| 422 | Validation error (fiscal_year must be 2000–2100, limit must be 1–100, offset must be ≥ 0, category max 50 characters) |
 
 ### Example curl
 
@@ -155,6 +171,12 @@ Returns complete detail for one contract. The response item includes `psc_descri
 |---|---|---|---|
 | contract_id | string | Yes | Contract ID such as `DOT-2026-00041`. |
 
+### Error Responses
+
+| Status | Detail |
+|---|---|
+| 404 | Contract not found |
+
 ### Example curl
 
 ```bash
@@ -200,6 +222,12 @@ Returns vendor search results.
 | query | string | No | Case-insensitive match on vendor name or UEI. |
 | limit | integer | No | Max number of vendors. Default: `20`, max: `100`. |
 
+### Error Responses
+
+| Status | Detail |
+|---|---|
+| 422 | Validation error (query max 100 characters, limit must be 1–100) |
+
 ### Example curl
 
 ```bash
@@ -233,6 +261,12 @@ Returns detailed vendor profile, totals, and top agencies/categories.
 | Name | Type | Required | Description |
 |---|---|---|---|
 | vendor_id | string | Yes | Vendor ID such as `V003`. |
+
+### Error Responses
+
+| Status | Detail |
+|---|---|
+| 404 | Vendor not found |
 
 ### Example curl
 
@@ -508,6 +542,7 @@ Cross-references alignment drift against active contracts to produce a per-agenc
 | Status | Detail |
 |---|---|
 | 404 | No alignment report found. Run POST /internal/alignment/run first. |
+| 422 | Validation error (fiscal_year must be 2000–2100) |
 
 ### Example curl
 
